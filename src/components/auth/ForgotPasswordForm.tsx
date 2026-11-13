@@ -18,7 +18,11 @@ export default function ForgotPasswordForm() {
           If there&rsquo;s an account for <strong>{state.sentTo}</strong>,
           we&rsquo;ve sent a link to choose a new password.
         </p>
-        <p>If it doesn&rsquo;t arrive in a few minutes, please look in your spam folder.</p>
+        <p>
+          Please open the email on this same phone or computer. If it
+          doesn&rsquo;t arrive in a few minutes, please look in your spam
+          folder.
+        </p>
       </div>
     );
   }

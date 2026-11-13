@@ -16,7 +16,11 @@ export default function SignupForm() {
           confirm your email address, and you&rsquo;ll be taken straight to
           your account.
         </p>
-        <p>If it doesn&rsquo;t arrive in a few minutes, please look in your spam folder.</p>
+        <p>
+          It works best if you open the email on this same phone or computer.
+          If it doesn&rsquo;t arrive in a few minutes, please look in your
+          spam folder.
+        </p>
       </div>
     );
   }

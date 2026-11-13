@@ -51,7 +51,8 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     password,
     options: {
       data: { full_name: name },
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm`,
+      // Where the confirmation link in the email brings them back to.
+      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/my-books`,
     },
   });
 
@@ -93,7 +94,8 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${await siteOrigin()}/auth/confirm`,
+    // Where the link in the reset email brings them back to.
+    redirectTo: `${await siteOrigin()}/auth/confirm?next=/reset-password`,
   });
 
   // Only report problems on our side. We never say whether an account exists,
