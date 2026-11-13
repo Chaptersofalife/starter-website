@@ -50,6 +50,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="site-footer">
           <div className="container">
             <p>© Chapters of a Life</p>
+            <nav aria-label="Legal" className="footer-nav">
+              <ul>
+                <li>
+                  <Link href="/privacy">Privacy Policy</Link>
+                </li>
+                <li>
+                  <Link href="/terms">Terms &amp; Conditions</Link>
+                </li>
+              </ul>
+            </nav>
           </div>
         </footer>
       </body>

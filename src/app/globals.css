@@ -328,6 +328,85 @@ main {
   margin-top: 2rem;
 }
 
+/* ---------- Privacy Policy and Terms pages ---------- */
+
+.legal {
+  max-width: var(--reading-width);
+}
+
+.draft-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  margin-bottom: 2rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius);
+  background: var(--color-linen);
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+
+.draft-badge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.legal-updated {
+  margin-top: 0.75rem;
+  color: var(--color-stone);
+  font-size: 1rem;
+}
+
+.legal h2 {
+  margin-top: 2.75rem;
+  font-size: clamp(1.6rem, 3.5vw, 2rem);
+}
+
+.legal h3 {
+  margin-top: 1.75rem;
+  font-size: clamp(1.25rem, 2.6vw, 1.45rem);
+}
+
+.legal h2 + p,
+.legal h3 + p,
+.legal h2 + ul,
+.legal h3 + ul {
+  margin-top: 0.75rem;
+}
+
+.legal ul {
+  margin-top: 1em;
+  padding-left: 1.25rem;
+}
+
+.legal li + li {
+  margin-top: 0.5rem;
+}
+
+.legal ul + p {
+  margin-top: 1em;
+}
+
+.legal-related {
+  margin-top: 2.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.legal-intro {
+  margin-top: 2rem;
+  font-size: clamp(1.1rem, 2vw, 1.2rem);
+  color: var(--color-stone);
+}
+
 /* ---------- Footer ---------- */
 
 .site-footer {
@@ -335,6 +414,32 @@ main {
   padding-block: 2rem;
   font-size: 0.95rem;
   color: var(--color-stone);
+}
+
+.site-footer .container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+}
+
+.footer-nav ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+}
+
+.footer-nav a {
+  display: inline-block;
+  padding-block: 0.5rem; /* easier to tap on phones */
+  color: var(--color-stone);
+}
+
+.footer-nav a:hover {
+  color: var(--color-sage-dark);
 }
 
 /* ---------- Placeholders (text waiting for your own words) ---------- */
