@@ -1,9 +1,20 @@
-// The home page of the website (what visitors see at chaptersofalife...com/).
+// The home page of the website.
 export default function Home() {
   return (
-    <main style={{ maxWidth: "40rem", margin: "0 auto", padding: "4rem 1rem" }}>
-      <h1>Chapters of a Life</h1>
-      <p>Personalised memorial books. Our website is coming soon.</p>
+    <main>
+      <section className="section hero">
+        <div className="container">
+          <div className="reading">
+            <h1>Every life is a story worth keeping</h1>
+            <p className="lead">
+              Personalised memorial books that gather the memories, photographs
+              and words of someone you love into a keepsake for your family.
+            </p>
+            <hr className="ornament" />
+            <p className="muted">Our website is coming soon.</p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
