@@ -1,0 +1,59 @@
+/* Styles used only on the "My books" page. */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem 2rem;
+}
+
+.header > div {
+  min-width: 0;
+}
+
+.lead {
+  margin-top: 1rem;
+  font-size: clamp(1.1rem, 2vw, 1.25rem);
+  color: var(--color-stone);
+}
+
+.books {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
+.empty {
+  margin-top: 1.25rem;
+  padding: clamp(1.75rem, 5vw, 3rem);
+  border: 1px dashed var(--color-gold);
+  border-radius: var(--radius);
+  background: var(--color-linen);
+  max-width: 44rem;
+}
+
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(1.45rem, 3vw, 1.8rem);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-ink);
+  margin-bottom: 0.5rem;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 44rem;
+}
+
+.book {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
