@@ -5,6 +5,7 @@
 // The other text is a draft written for you: change any of it freely.
 
 import Placeholder from "@/components/Placeholder";
+import StartBookButton from "@/components/StartBookButton";
 import styles from "./page.module.css";
 
 // The three "How it works" steps. Edit the wording here.
@@ -29,16 +30,6 @@ const samplePages = [
   { label: "A chapter opening", caption: "Each chapter begins a new part of their life." },
   { label: "Photographs and memories", caption: "Pictures and stories side by side." },
 ];
-
-// "Start a book" does nothing yet.
-// TODO: link it to the book builder once that page exists.
-function StartBookButton() {
-  return (
-    <button type="button" className="button">
-      Start a book
-    </button>
-  );
-}
 
 export default function Home() {
   return (
