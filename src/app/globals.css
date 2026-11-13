@@ -180,6 +180,72 @@ a:hover {
   color: var(--color-sage-dark);
 }
 
+/* ---------- Forms ---------- */
+
+.form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #8f7f6d; /* dark enough to see the box edge clearly (3:1 contrast) */
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1.0625rem; /* 17px+ stops phones zooming in when you tap */
+  line-height: 1.5;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 9rem;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--color-sage);
+  outline-offset: 1px;
+  border-color: var(--color-sage);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.form-error {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #9a4b3c;
+  background: #fbefec;
+  color: #6e3127;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.form-success {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.form-success p {
+  color: var(--color-stone);
+}
+
 /* ---------- Header ---------- */
 
 .site-header {

@@ -1,0 +1,61 @@
+/* Styles used only on the "Contact" page. */
+
+.intro {
+  padding-block: clamp(3rem, 9vw, 6rem) clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.lead {
+  margin-top: 1.25rem;
+  font-size: clamp(1.15rem, 2.2vw, 1.3rem);
+  color: var(--color-stone);
+}
+
+.body {
+  padding-block: clamp(1rem, 3vw, 2rem) clamp(3.5rem, 9vw, 6rem);
+}
+
+/* Form and questions side by side on wide screens, stacked on phones */
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(3rem, 7vw, 5rem);
+  align-items: start;
+}
+
+.formColumn {
+  min-width: 0;
+  max-width: 34rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  background: var(--color-linen);
+  border-radius: var(--radius);
+}
+
+/* ---------- Common questions ---------- */
+
+.faq {
+  min-width: 0;
+  max-width: var(--reading-width);
+}
+
+.questions {
+  display: grid;
+  gap: 1.75rem;
+  margin-top: 1.5rem;
+}
+
+.question {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.question dt {
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 3vw, 1.6rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.question dd {
+  margin: 0.5rem 0 0;
+  color: var(--color-stone);
+}

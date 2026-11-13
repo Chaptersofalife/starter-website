@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!--
+  Hidden copy of the website's forms, for Netlify Forms.
+
+  Visitors never see this page. Netlify reads it when the site is published to
+  learn which forms exist and which fields they have. The real, visible forms
+  (for example src/components/ContactForm.tsx) send their messages here.
+
+  If you add, rename or remove a field in a visible form, make the same change
+  here, or Netlify will not save that field.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Forms</title>
+  </head>
+  <body>
+    <form name="contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="contact">
+      <input name="bot-field">
+      <input type="text" name="name">
+      <input type="email" name="email">
+      <textarea name="message"></textarea>
+    </form>
+  </body>
+</html>
