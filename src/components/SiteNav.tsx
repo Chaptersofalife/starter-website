@@ -4,7 +4,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [{ href: "/how-it-works", label: "How it works" }];
+const links = [
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/contact", label: "Contact" },
+];
 
 export default function SiteNav() {
   const pathname = usePathname();
