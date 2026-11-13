@@ -1,0 +1,9 @@
+# Settings Netlify reads when it builds and publishes the website.
+# Netlify recognises Next.js automatically, so logins, payments and
+# other server code will work without extra setup.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
