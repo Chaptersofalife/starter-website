@@ -231,6 +231,37 @@ main {
   color: var(--color-stone);
 }
 
+/* ---------- Placeholders (text waiting for your own words) ---------- */
+
+.placeholder {
+  position: relative;
+  padding: 1rem 1.1rem;
+  border: 1px dashed var(--color-gold);
+  border-radius: var(--radius);
+  background: rgba(184, 151, 106, 0.08);
+  color: var(--color-stone);
+}
+
+.placeholder-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-stone);
+}
+
+.placeholder-inline {
+  padding: 0 0.25em;
+  border: 0;
+  border-bottom: 1px dashed var(--color-gold);
+  border-radius: 2px;
+  background: rgba(184, 151, 106, 0.12);
+  color: inherit;
+}
+
 /* ---------- Phones ---------- */
 
 @media (max-width: 480px) {
