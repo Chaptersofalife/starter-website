@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
+import SiteNav from "@/components/SiteNav";
 import "./globals.css";
 
 // Elegant font for headings
@@ -19,7 +20,11 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Chapters of a Life",
+  // Each page's own title is shown first, e.g. "How it works · Chapters of a Life"
+  title: {
+    default: "Chapters of a Life",
+    template: "%s · Chapters of a Life",
+  },
   description: "Personalised memorial books.",
 };
 
@@ -36,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="site-name">
               Chapters of a Life
             </Link>
+            <SiteNav />
           </div>
         </header>
 
