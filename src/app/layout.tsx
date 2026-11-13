@@ -1,14 +1,20 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+// The frame around every page: fonts, header and footer.
+import type { Metadata, Viewport } from "next";
+import Link from "next/link";
+import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Elegant font for headings
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Clear, easy-to-read font for body text
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
 });
 
@@ -17,10 +23,30 @@ export const metadata: Metadata = {
   description: "Personalised memorial books.",
 };
 
+export const viewport: Viewport = {
+  themeColor: "#faf6f0",
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+    <html lang="en" className={`${cormorant.variable} ${sourceSans.variable}`}>
+      <body>
+        <header className="site-header">
+          <div className="container">
+            <Link href="/" className="site-name">
+              Chapters of a Life
+            </Link>
+          </div>
+        </header>
+
+        {children}
+
+        <footer className="site-footer">
+          <div className="container">
+            <p>© Chapters of a Life</p>
+          </div>
+        </footer>
+      </body>
     </html>
   );
 }
