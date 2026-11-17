@@ -47,6 +47,18 @@ export async function updateSession(request: NextRequest) {
     return redirectTo(request, "/my-books", response);
   }
 
+  // The admin area: anyone who isn't an admin gets a plain "page not found",
+  // which doesn't reveal that it exists. (Each admin page checks again too.)
+  if (matches(["/admin"])) {
+    const { data: isAdmin } = isSignedIn ? await supabase.rpc("is_admin") : { data: false };
+    if (isAdmin !== true) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/page-not-found";
+      url.search = "";
+      return NextResponse.rewrite(url, { status: 404 });
+    }
+  }
+
   return response;
 }
 
