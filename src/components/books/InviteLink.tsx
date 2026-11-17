@@ -63,8 +63,9 @@ export default function InviteLink({ url, createNewLink }: InviteLinkProps) {
           </p>
           <p id="newlink-text">
             The current link will stop working straight away. Anyone who
-            hasn&rsquo;t shared their memory yet will need the new link. Memories
-            already received are kept.
+            hasn&rsquo;t shared their memory yet will need the new link, including
+            people you invited by email (use &ldquo;Resend&rdquo; to send them the new
+            one). Memories already received are kept.
           </p>
           <form action={createNewLink} className="actions">
             <ConfirmButton />

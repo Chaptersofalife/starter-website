@@ -18,11 +18,13 @@ type MemoryFormProps = {
   abandonPhoto: (memoryId: string, photoId: string) => Promise<void>;
   /** The name to use in the wording, e.g. "Peggy". */
   personName: string;
+  /** Their personal code, if they came from an email invitation. */
+  invitationKey?: string;
 };
 
 type Phase = "editing" | "sending" | "uploading" | "done" | "closed";
 
-export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personName }: MemoryFormProps) {
+export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personName, invitationKey = "" }: MemoryFormProps) {
   const [phase, setPhase] = useState<Phase>("editing");
   const [result, setResult] = useState<MemoryResult>({});
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
@@ -200,6 +202,9 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
           if (el && !el.value) el.value = String(Date.now());
         }}
       />
+
+      {/* Links this memory to their email invitation, so they aren't sent reminders */}
+      <input type="hidden" name="invitation" value={invitationKey} />
 
       {/* Hidden from people; catches automated spam */}
       <p className="visually-hidden" aria-hidden="true">

@@ -5,6 +5,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { adminRunReminders } from "@/app/admin/actions";
+import { RunRemindersButton } from "@/components/admin/ReminderControls";
 import { requireAdmin } from "@/lib/admin";
 import { formatDate } from "@/lib/books";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -102,6 +104,15 @@ async function AdminHome({ q }: { q: string }) {
           <dd>{totals.photos}</dd>
         </div>
       </dl>
+
+      <section className={styles.panel} aria-labelledby="reminders-heading">
+        <h2 id="reminders-heading">Reminder emails</h2>
+        <p className="muted">
+          Reminders are sent automatically every morning. To see sample emails for a book, open
+          it and use &ldquo;Email me a sample of every email&rdquo;.
+        </p>
+        <RunRemindersButton run={adminRunReminders} />
+      </section>
 
       <form action="/admin" method="get" className={styles.search} role="search">
         <label htmlFor="admin-search" className="visually-hidden">

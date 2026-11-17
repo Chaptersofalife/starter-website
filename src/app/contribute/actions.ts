@@ -214,6 +214,21 @@ export async function submitMemory(token: string, formData: FormData): Promise<M
   if (!saved) {
     return { error: "Sorry, your memory couldn't be sent just now. Please try again." };
   }
+
+  // If they came from an email invitation, note it, so they show as
+  // "added a memory" and aren't sent reminders.
+  const invitationKey = String(formData.get("invitation") ?? "");
+  if (admin && isInviteToken(invitationKey)) {
+    const { data: invitation } = await admin
+      .from("invitations")
+      .select("id")
+      .eq("token", invitationKey)
+      .eq("book_id", saved.book_id)
+      .maybeSingle();
+    if (invitation) {
+      await admin.from("memories").update({ invitation_id: invitation.id }).eq("id", saved.memory_id);
+    }
+  }
   if (photos.length === 0 || !admin) {
     return { ok: true, memoryId: saved.memory_id, uploads: [] };
   }

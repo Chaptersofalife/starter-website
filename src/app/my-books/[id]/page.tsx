@@ -29,8 +29,10 @@ import {
   undoMemoryEdit,
   type MemoryStatus,
 } from "@/app/my-books/review-actions";
+import { removeInvitation, resendInvitation, sendInvitations } from "@/app/my-books/invitation-actions";
 import BookClosing from "@/components/books/BookClosing";
 import CoverPhoto from "@/components/books/CoverPhoto";
+import InvitationsPanel, { type InvitedPerson } from "@/components/books/InvitationsPanel";
 import DeleteBook from "@/components/books/DeleteBook";
 import InviteLink from "@/components/books/InviteLink";
 import MemoryReview, { type ReviewMemory } from "@/components/books/MemoryReview";
@@ -60,6 +62,7 @@ type Memory = {
   status: MemoryStatus;
   edited_memory: string | null;
   edited_sayings: string | null;
+  invitation_id: string | null;
   created_at: string;
 };
 
@@ -117,7 +120,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/login");
 
-  const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }] = await Promise.all([
+  const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }, { data: invitations }] = await Promise.all([
     supabase
       .from("books")
       .select(`${bookColumns}, invite_token, cover_display_path, cover_width, cover_height`)
@@ -126,7 +129,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
     supabase
       .from("memories")
       .select(
-        "id, contributor_name, contributor_email, relationship, memory, sayings, status, edited_memory, edited_sayings, created_at",
+        "id, contributor_name, contributor_email, relationship, memory, sayings, status, edited_memory, edited_sayings, invitation_id, created_at",
       )
       .eq("book_id", id)
       .order("created_at", { ascending: false })
@@ -138,6 +141,11 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       .eq("uploaded", true)
       .order("position")
       .returns<MemoryPhoto[]>(),
+    supabase
+      .from("invitations")
+      .select("id, email, first_name, send_count, last_sent_at, reminders_stopped_at, created_at")
+      .eq("book_id", id)
+      .order("created_at", { ascending: false }),
   ]);
   if (!book) notFound();
   if (memoriesError) console.error("Load memories failed:", memoriesError.code, memoriesError.message);
@@ -199,6 +207,19 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
     });
     photosByMemory.set(p.memory_id, list);
   }
+
+  // Who has been invited by email, and have they added a memory yet?
+  const contributedEmails = new Set(allMemories.map((m) => m.contributor_email.toLowerCase()));
+  const contributedInvites = new Set(allMemories.map((m) => m.invitation_id).filter(Boolean));
+  const invitedPeople: InvitedPerson[] = (invitations ?? []).map((inv) => ({
+    id: inv.id,
+    email: inv.email,
+    firstName: inv.first_name,
+    lastSent: inv.last_sent_at ? formatShortDay(inv.last_sent_at) : null,
+    sendCount: inv.send_count ?? 0,
+    contributed: contributedInvites.has(inv.id) || contributedEmails.has(inv.email),
+    remindersStopped: Boolean(inv.reminders_stopped_at),
+  }));
 
   const reviewActions = {
     setStatus: setMemoryStatus,
@@ -346,10 +367,11 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       <section id="invite" className={styles.section} aria-labelledby="invite-heading">
         <h2 id="invite-heading">Invite family and friends</h2>
         <p className="muted">
-          Send this private link to the people who knew {personName}. They
-          can share a memory without creating an account. They won&rsquo;t
-          see anyone else&rsquo;s memories, and only you can read what they
-          send.
+          Share this private link yourself, or invite people by email below
+          and we&rsquo;ll send them a gentle reminder before the book closes.
+          They can share a memory of {personName} without creating an
+          account. They won&rsquo;t see anyone else&rsquo;s memories, and only
+          you can read what they send.
         </p>
         {status === "new-link" && (
           <p className={styles.notice} role="status">
@@ -368,6 +390,15 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
           </p>
         )}
         <InviteLink url={inviteUrl} createNewLink={createNewInviteLink.bind(null, book.id)} />
+        <InvitationsPanel
+          open={open}
+          people={invitedPeople}
+          actions={{
+            send: sendInvitations.bind(null, book.id),
+            resend: resendInvitation,
+            remove: removeInvitation,
+          }}
+        />
       </section>
 
       {/* ---------- Cover photo ---------- */}
@@ -421,6 +452,13 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
         </div>
       </section>
     </article>
+  );
+}
+
+/** "17 Nov" (UK time) */
+function formatShortDay(timestamp: string) {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" }).format(
+    new Date(timestamp),
   );
 }
 

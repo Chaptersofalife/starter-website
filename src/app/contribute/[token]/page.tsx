@@ -32,13 +32,14 @@ type Invite = {
   is_open: boolean;
 };
 
-export default function ContributePage({ params }: PageProps<"/contribute/[token]">) {
+export default function ContributePage({ params, searchParams }: PageProps<"/contribute/[token]">) {
   return (
     <main className="section">
       <div className="container">
         <Suspense fallback={<p className="muted">Loading…</p>}>
-          {params.then(({ token }) => (
-            <Contribute token={token} />
+          {Promise.all([params, searchParams]).then(([{ token }, query]) => (
+            // `i` is the personal code from an email invitation, if they came from one.
+            <Contribute token={token} invitationKey={String(query.i ?? "")} />
           ))}
         </Suspense>
       </div>
@@ -46,7 +47,7 @@ export default function ContributePage({ params }: PageProps<"/contribute/[token
   );
 }
 
-async function Contribute({ token }: { token: string }) {
+async function Contribute({ token, invitationKey }: { token: string; invitationKey: string }) {
   // This page depends on today's date (is the book still open?), so it is
   // always made fresh for each visitor.
   await connection();
@@ -118,6 +119,7 @@ async function Contribute({ token }: { token: string }) {
             finishPhotos={finishMemoryPhotos.bind(null, token)}
             abandonPhoto={abandonMemoryPhoto.bind(null, token)}
             personName={personName}
+            invitationKey={isInviteToken(invitationKey) ? invitationKey : ""}
           />
         ) : (
           <BookClosedMessage />
