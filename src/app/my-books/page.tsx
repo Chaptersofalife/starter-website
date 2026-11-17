@@ -2,11 +2,13 @@
 // Only signed-in organisers can see it. Row Level Security in Supabase
 // makes sure each organiser only ever gets their own profile and books.
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { logOut } from "@/app/auth/actions";
-import { lifeDates, type Book } from "@/lib/books";
+import { lifeDates, todayInUK, type Book } from "@/lib/books";
+import { isOpen, shortDate } from "@/lib/closing";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -36,6 +38,7 @@ export default function MyBooksPage({ searchParams }: PageProps<"/my-books">) {
 
 // Loads when the page is opened, because it's different for each organiser.
 async function MyBooks({ status }: { status: string }) {
+  await connection(); // uses today's date (open/closed labels)
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
@@ -47,14 +50,17 @@ async function MyBooks({ status }: { status: string }) {
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
     supabase
       .from("books")
-      .select("id, full_name, known_as, date_of_birth, date_of_death")
+      .select("id, full_name, known_as, date_of_birth, date_of_death, closes_on, closed_at")
       .order("created_at", { ascending: false })
-      .returns<Pick<Book, "id" | "full_name" | "known_as" | "date_of_birth" | "date_of_death">[]>(),
+      .returns<
+        Pick<Book, "id" | "full_name" | "known_as" | "date_of_birth" | "date_of_death" | "closes_on" | "closed_at">[]
+      >(),
   ]);
 
   const fullName = profile?.full_name ?? user.user_metadata?.full_name ?? "";
   const firstName = String(fullName).trim().split(/\s+/)[0];
   const message = statusMessages[status];
+  const today = todayInUK();
 
   return (
     <>
@@ -99,6 +105,15 @@ async function MyBooks({ status }: { status: string }) {
                     <span className={styles.bookKnownAs}>Known as {book.known_as}</span>
                   )}
                   <span className={styles.bookDates}>{lifeDates(book)}</span>
+                  <span className={styles.bookClosing}>
+                    {isOpen({ closesOn: book.closes_on, closedAt: book.closed_at }, today) ? (
+                      <span className="open-label">
+                        {book.closes_on ? `Open until ${shortDate(book.closes_on, today)}` : "Open"}
+                      </span>
+                    ) : (
+                      <span className="closed-label">Closed</span>
+                    )}
+                  </span>
                   <span className={styles.bookOpen} aria-hidden="true">
                     Open →
                   </span>

@@ -22,6 +22,7 @@ import {
   removeFiles,
   signedDownloadUrl,
 } from "@/lib/photos-server";
+import { closingDateProblem } from "@/lib/closing";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,6 +33,7 @@ export type BookFields = {
   date_of_death: string;
   lived_in: string;
   introduction: string;
+  closes_on: string;
 };
 
 export type BookFormState = {
@@ -52,10 +54,11 @@ function readFields(formData: FormData): BookFields {
     date_of_death: get("date_of_death"),
     lived_in: get("lived_in"),
     introduction: get("introduction"),
+    closes_on: get("closes_on"),
   };
 }
 
-function check(values: BookFields): BookFormState["fieldErrors"] {
+function check(values: BookFields, originalClosesOn = ""): BookFormState["fieldErrors"] {
   const errors: BookFormState["fieldErrors"] = {};
   const today = todayInUK();
 
@@ -95,6 +98,12 @@ function check(values: BookFields): BookFormState["fieldErrors"] {
     errors.date_of_death = "This date is before their date of birth. Please check both dates.";
   }
 
+  const closingProblem = closingDateProblem(
+    values.closes_on,
+    values.closes_on !== "" && values.closes_on === originalClosesOn,
+  );
+  if (closingProblem) errors.closes_on = closingProblem;
+
   return errors;
 }
 
@@ -107,6 +116,7 @@ function toRow(values: BookFields) {
     date_of_death: values.date_of_death,
     lived_in: values.lived_in || null,
     introduction: values.introduction || null,
+    closes_on: values.closes_on || null,
   };
 }
 
@@ -149,7 +159,8 @@ export async function updateBook(
   formData: FormData,
 ): Promise<BookFormState> {
   const values = readFields(formData);
-  const fieldErrors = check(values);
+  // An existing closing date that has passed can be kept while editing other details.
+  const fieldErrors = check(values, String(formData.get("original_closes_on") ?? ""));
   if (fieldErrors && Object.keys(fieldErrors).length > 0) {
     return { values, fieldErrors, error: "Please check the highlighted answers." };
   }
@@ -419,4 +430,43 @@ export async function getOriginalDownloadUrl(photoId: string): Promise<string | 
     .slice(0, 40) || "photo";
   const fileName = photo.original_name?.trim() || `${contributor}-${photo.position + 1}.${ext}`;
   return signedDownloadUrl(photo.original_path, fileName);
+}
+
+// ---------------------------------------------------------------------------
+// Closing date: change it, close early, or reopen
+// ---------------------------------------------------------------------------
+
+export type ClosingResult = { ok: boolean; error?: string };
+
+async function updateClosing(bookId: string, changes: { closes_on?: string | null; closed_at?: string | null }): Promise<ClosingResult> {
+  if (!isBookId(bookId)) return { ok: false, error: "We couldn't find this book." };
+  const supabase = await signedInClient();
+  const { data, error } = await supabase.from("books").update(changes).eq("id", bookId).select("id");
+  if (error) {
+    console.error("Closing date update failed:", error.code, error.message);
+    return { ok: false, error: "Sorry, that didn't save. Please try again." };
+  }
+  if (!data || data.length === 0) return { ok: false, error: "We couldn't find this book." };
+  revalidatePath(`/my-books/${bookId}`);
+  revalidatePath("/my-books");
+  return { ok: true };
+}
+
+/** Sets (or removes, with "") the closing date. Also reopens a book that was closed early. */
+export async function setClosingDate(bookId: string, closesOn: string): Promise<ClosingResult> {
+  const problem = closingDateProblem(closesOn);
+  if (problem) return { ok: false, error: problem };
+  return updateClosing(bookId, { closes_on: closesOn || null, closed_at: null });
+}
+
+/** Stops new memories straight away. The closing date is kept, for reference. */
+export async function closeBookNow(bookId: string): Promise<ClosingResult> {
+  return updateClosing(bookId, { closed_at: new Date().toISOString() });
+}
+
+/** Opens the book again, until a new closing date (or with no date, if blank). */
+export async function reopenBook(bookId: string, closesOn: string): Promise<ClosingResult> {
+  const problem = closingDateProblem(closesOn);
+  if (problem) return { ok: false, error: problem };
+  return updateClosing(bookId, { closes_on: closesOn || null, closed_at: null });
 }

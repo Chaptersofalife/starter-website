@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useActionState } from "react";
 import type { BookFields, BookFormState } from "@/app/my-books/actions";
 import FormError from "@/components/auth/FormError";
-import { earliestDate, limits } from "@/lib/books";
+import { earliestDate, limits, todayInUK } from "@/lib/books";
+import { SUGGESTED_DAYS_OPEN, addDays } from "@/lib/closing";
 
 type BookFormProps = {
   action: (state: BookFormState, formData: FormData) => Promise<BookFormState>;
@@ -15,6 +16,8 @@ type BookFormProps = {
   submitLabel: string;
   pendingLabel: string;
   cancelHref: string;
+  /** For a new book: fill in a closing date three weeks from today. */
+  suggestClosingDate?: boolean;
 };
 
 export default function BookForm({
@@ -23,6 +26,7 @@ export default function BookForm({
   submitLabel,
   pendingLabel,
   cancelHref,
+  suggestClosingDate = false,
 }: BookFormProps) {
   const [state, formAction, pending] = useActionState<BookFormState, FormData>(action, {});
   const values = { ...initial, ...state.values };
@@ -144,6 +148,33 @@ export default function BookForm({
         </p>
         {fieldError("introduction")}
       </div>
+
+      <div className="field">
+        <label htmlFor="closes_on">
+          Closing date <span className="optional">(optional)</span>
+        </label>
+        <input
+          id="closes_on"
+          name="closes_on"
+          type="date"
+          defaultValue={values.closes_on ?? ""}
+          ref={(el) => {
+            // Suggest three weeks from today for a new book (done here, in the
+            // browser, so the date is always today's).
+            if (el && suggestClosingDate && !el.value && state.values === undefined) {
+              el.value = addDays(todayInUK(), SUGGESTED_DAYS_OPEN);
+            }
+          }}
+          {...errorProps("closes_on", "closes_on-hint")}
+        />
+        <p id="closes_on-hint" className="field-hint">
+          Family and friends can add memories until the end of this day. Leave it empty to keep
+          the book open. You can change it, close early or reopen at any time.
+        </p>
+        {fieldError("closes_on")}
+      </div>
+      {/* The closing date when the form opened, so an old date can be kept while editing */}
+      <input type="hidden" name="original_closes_on" value={initial.closes_on ?? ""} />
 
       <FormError message={state.error} />
 

@@ -33,6 +33,7 @@ export default function NewBookPage() {
               submitLabel="Save and start the book"
               pendingLabel="Saving…"
               cancelHref="/my-books"
+              suggestClosingDate
             />
           </div>
         </div>
