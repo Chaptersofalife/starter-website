@@ -109,75 +109,149 @@
   margin-bottom: 0;
 }
 
-.memories {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-}
-
-.memory {
-  display: grid;
-  gap: 0.75rem;
-  padding: clamp(1.25rem, 4vw, 1.75rem);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  min-width: 0;
-}
-
-.memoryHeader {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.memoryName {
-  font-family: var(--font-heading);
-  font-size: clamp(1.3rem, 3vw, 1.5rem);
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.memoryMeta,
-.memoryEmail {
-  font-size: 0.95rem;
-  color: var(--color-stone);
-}
-
-.memoryText {
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-}
-
-.sayings {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  border-left: 2px solid var(--color-gold);
-  background: var(--color-gold-tint);
-  font-family: var(--font-heading);
-  font-size: 1.2rem;
-  font-style: italic;
-}
-
-.sayingsLabel {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-style: normal;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-stone);
-  margin-bottom: 0.25rem;
-}
-
 .bookActions {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 1rem;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--color-border);
+  margin-top: 1.5rem;
+}
+
+/* ---------- The book page (wider, for reviewing memories) ---------- */
+
+.bookWide {
+  max-width: 52rem;
+}
+
+.bookWide .details,
+.bookWide .introduction,
+.bookWide .bookHeader {
+  max-width: var(--reading-width);
+}
+
+.introduction h3 {
+  margin-bottom: 0.5rem;
+}
+
+/* Summary: a row of numbers that wraps on phones */
+.summarySection {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.75rem;
+}
+
+.summary > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.summary dt {
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--color-stone);
+}
+
+.summary dd {
+  margin: 0;
+  /* The body font: its numbers are easy to read (the heading font's "1" looks like an "I") */
+  font-family: var(--font-body);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryApproved {
+  border-top-color: var(--color-sage) !important;
+}
+
+.summaryWaiting {
+  border-top-color: var(--color-gold) !important;
+}
+
+.summaryHidden {
+  border-top-color: var(--color-stone) !important;
+}
+
+/* Memories to review */
+.reviewSection {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: clamp(2.5rem, 6vw, 3.5rem);
+  scroll-margin-top: 1rem;
+}
+
+.reviewHead {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.reviewHead h2 {
+  font-size: clamp(1.6rem, 3.5vw, 2rem);
+}
+
+/* All / Waiting / Approved / Hidden */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.filter:hover {
+  border-color: var(--color-sage);
+  color: var(--color-ink);
+}
+
+.filter[aria-current="page"] {
+  background: var(--color-sage);
+  border-color: var(--color-sage);
+  color: var(--color-on-accent);
+}
+
+.filterCount {
+  min-width: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--color-linen);
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.reviewList {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
 }
 
 /* ---------- Cover photo ---------- */
