@@ -1,5 +1,14 @@
 /* Styles used only on the "My books" page. */
 
+.notice {
+  margin-bottom: 2rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--color-sage);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--color-linen);
+  max-width: 44rem;
+}
+
 .header {
   display: flex;
   flex-wrap: wrap;
@@ -20,6 +29,15 @@
 
 .books {
   margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
+.booksHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  max-width: 44rem;
 }
 
 .empty {
@@ -49,11 +67,46 @@
   max-width: 44rem;
 }
 
+/* Each book is one large, easy-to-tap link */
 .book {
-  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 1rem;
+  padding: 1.1rem 1.25rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+
+.book:hover {
+  border-color: var(--color-sage);
+  color: var(--color-ink);
+}
+
+.bookName {
+  grid-column: 1;
   font-family: var(--font-heading);
-  font-size: 1.4rem;
+  font-size: clamp(1.35rem, 3vw, 1.6rem);
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.bookKnownAs,
+.bookDates {
+  grid-column: 1;
+  font-size: 1rem;
+  color: var(--color-stone);
+}
+
+.bookOpen {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-sage);
 }
