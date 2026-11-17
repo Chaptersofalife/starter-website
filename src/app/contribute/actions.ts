@@ -54,6 +54,8 @@ export type MemoryResult = {
   memoryId?: string;
   /** One set of upload passes per photo, in the same order they were sent. */
   uploads?: { photoId: string; targets: { original: UploadTarget; display: UploadTarget; thumb: UploadTarget } }[];
+  /** True if the book has closed to new memories. */
+  closed?: boolean;
   /** True if the memory was saved but photos couldn't be prepared. */
   photosFailed?: boolean;
   error?: string;
@@ -187,6 +189,9 @@ export async function submitMemory(token: string, formData: FormData): Promise<M
     switch (error.message) {
       case "invite_not_found":
         return { error: linkNotWorking };
+      case "book_closed":
+        // Checked by the database, so it can't be got round.
+        return { closed: true, error: bookClosed };
       case "too_many_memories":
         return {
           error:
@@ -315,3 +320,6 @@ export async function abandonMemoryPhoto(token: string, memoryId: string, photoI
 
 const linkNotWorking =
   "This link is no longer working. Please ask the person who invited you for a new one.";
+
+const bookClosed =
+  "This book is now closed to new memories. Thank you for being part of it.";

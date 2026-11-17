@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { requireAdmin } from "@/lib/admin";
+import { formatDate } from "@/lib/books";
 import { getAdminClient } from "@/lib/supabase/admin";
 import styles from "./admin.module.css";
 
@@ -25,6 +26,9 @@ type Row = {
   memories_approved: number;
   memories_hidden: number;
   photos: number;
+  closes_on: string | null;
+  closed_at: string | null;
+  is_open: boolean;
 };
 
 export default function AdminPage({ searchParams }: PageProps<"/admin">) {
@@ -148,6 +152,7 @@ async function AdminHome({ q }: { q: string }) {
                 <th scope="col" className={styles.num}>
                   Photos
                 </th>
+                <th scope="col">Closing</th>
               </tr>
             </thead>
             <tbody>
@@ -172,6 +177,16 @@ async function AdminHome({ q }: { q: string }) {
                   <td className={styles.num}>{r.memories_approved}</td>
                   <td className={styles.num}>{r.memories_hidden}</td>
                   <td className={styles.num}>{r.photos}</td>
+                  <td>
+                    <span className={r.is_open ? "open-label" : "closed-label"}>{r.is_open ? "Open" : "Closed"}</span>
+                    <span className={styles.sub}>
+                      {r.closed_at
+                        ? `Closed early ${formatDay(r.closed_at)}`
+                        : r.closes_on
+                          ? `${r.is_open ? "Until" : "Closed"} ${formatDate(r.closes_on)}`
+                          : "No closing date"}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

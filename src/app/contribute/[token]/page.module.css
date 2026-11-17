@@ -65,3 +65,14 @@
   background: var(--color-linen);
   border-radius: var(--radius);
 }
+
+/* "Please add your memories by 8 December" */
+.closing {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 2px solid var(--color-gold);
+  background: var(--color-gold-tint);
+  font-size: 1.05rem;
+  color: var(--color-ink);
+}

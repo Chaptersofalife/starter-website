@@ -20,7 +20,7 @@ type MemoryFormProps = {
   personName: string;
 };
 
-type Phase = "editing" | "sending" | "uploading" | "done";
+type Phase = "editing" | "sending" | "uploading" | "done" | "closed";
 
 export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personName }: MemoryFormProps) {
   const [phase, setPhase] = useState<Phase>("editing");
@@ -77,6 +77,12 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
       res = { error: "Sorry, your memory couldn't be sent just now. Please check your connection and try again." };
     }
     if (!res.ok) {
+      if (res.closed) {
+        // The book closed while the form was open (checked by the database).
+        clearPhotos();
+        setPhase("closed");
+        return;
+      }
       setResult(res);
       setPhase("editing");
       return;
@@ -121,6 +127,19 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
       current.forEach((p) => p.prepared && URL.revokeObjectURL(p.prepared.previewUrl));
       return [];
     });
+  }
+
+  if (phase === "closed") {
+    return (
+      <div className="thank-you" role="status">
+        <h2>This book is now closed</h2>
+        <p>This book is now closed to new memories. Thank you for being part of it.</p>
+        <p>
+          If you have something you&rsquo;d still like to share, please get in touch with the person
+          who invited you.
+        </p>
+      </div>
+    );
   }
 
   if (phase === "done") {

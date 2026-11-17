@@ -9,13 +9,17 @@ export type Book = {
   date_of_death: string | null; // "YYYY-MM-DD"
   lived_in: string | null;
   introduction: string | null;
+  /** Memories welcome until the end of this day (UK time), or null for no date. */
+  closes_on: string | null;
+  /** When the organiser closed the book early, or null. */
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
 /** The columns to load for a book. */
 export const bookColumns =
-  "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, created_at, updated_at";
+  "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, closes_on, closed_at, created_at, updated_at";
 
 /** Longest each answer can be (the database checks these too). */
 export const limits = {

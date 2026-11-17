@@ -62,6 +62,7 @@ async function EditBook({ id }: { id: string }) {
               date_of_death: book.date_of_death ?? "",
               lived_in: book.lived_in ?? "",
               introduction: book.introduction ?? "",
+              closes_on: book.closes_on ?? "",
             }}
             submitLabel="Save changes"
             pendingLabel="Saving…"

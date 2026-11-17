@@ -259,3 +259,10 @@
 .coverSection {
   margin-bottom: 2.5rem;
 }
+
+/* ---------- Closing date ---------- */
+
+.closingSection {
+  margin-top: 1.5rem;
+  max-width: 44rem;
+}

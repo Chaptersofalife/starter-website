@@ -1,6 +1,7 @@
 // One book in the admin area (read-only): chaptersofalife...com/admin/books/<id>
 // Only admins can open it; everyone else sees "page not found".
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -8,7 +9,8 @@ import { adminDownloadUrl, getLayoutPackage } from "@/app/admin/actions";
 import LayoutDownload from "@/components/admin/LayoutDownload";
 import PhotoGallery, { type GalleryPhoto } from "@/components/books/PhotoGallery";
 import { requireAdmin } from "@/lib/admin";
-import { formatDate, isBookId } from "@/lib/books";
+import { formatDate, isBookId, todayInUK } from "@/lib/books";
+import { daysLeftText, isOpen } from "@/lib/closing";
 import { printWarning } from "@/lib/photos";
 import { signedViewUrls } from "@/lib/photos-server";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -43,6 +45,7 @@ export default function AdminBookPage({ params }: PageProps<"/admin/books/[id]">
 }
 
 async function AdminBook({ id }: { id: string }) {
+  await connection(); // uses today's date (closing date)
   await requireAdmin();
   if (!isBookId(id)) notFound();
   const admin = getAdminClient();
@@ -52,7 +55,7 @@ async function AdminBook({ id }: { id: string }) {
     admin
       .from("books")
       .select(
-        "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, created_at, cover_display_path, cover_width, cover_height",
+        "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, created_at, cover_display_path, cover_width, cover_height, closes_on, closed_at",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -101,6 +104,15 @@ async function AdminBook({ id }: { id: string }) {
     photosByMemory.set(p.memory_id, list);
   }
   const coverUrl = urls.get(book.cover_display_path ?? "");
+  const today = todayInUK();
+  const open = isOpen({ closesOn: book.closes_on, closedAt: book.closed_at }, today);
+  const closingText = book.closed_at
+    ? `Closed early on ${formatDate(book.closed_at.slice(0, 10))}`
+    : book.closes_on
+      ? open
+        ? `Open until ${formatDate(book.closes_on)} (${daysLeftText(book.closes_on, today)})`
+        : `Closed: memories were welcome until ${formatDate(book.closes_on)}`
+      : "Open, with no closing date";
 
   return (
     <article className={styles.book}>
@@ -128,6 +140,13 @@ async function AdminBook({ id }: { id: string }) {
                   <a href={`mailto:${info.organiser_email}`}>{info.organiser_email}</a>
                 </>
               )}
+            </dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span className={open ? "open-label" : "closed-label"}>{open ? "Open" : "Closed"}</span>{" "}
+              {closingText}
             </dd>
           </div>
           <div>

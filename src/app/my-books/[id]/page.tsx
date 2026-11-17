@@ -4,18 +4,22 @@
 // Row Level Security means an organiser can only ever load (and change) their
 // own books, memories and photos. Anyone else's book simply isn't found.
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   abandonCoverUpload,
+  closeBookNow,
   createNewInviteLink,
   deleteBook,
   getOriginalDownloadUrl,
   prepareCoverUpload,
   removeCover,
+  reopenBook,
   saveCover,
+  setClosingDate,
 } from "@/app/my-books/actions";
 import {
   deleteMemory,
@@ -25,12 +29,14 @@ import {
   undoMemoryEdit,
   type MemoryStatus,
 } from "@/app/my-books/review-actions";
+import BookClosing from "@/components/books/BookClosing";
 import CoverPhoto from "@/components/books/CoverPhoto";
 import DeleteBook from "@/components/books/DeleteBook";
 import InviteLink from "@/components/books/InviteLink";
 import MemoryReview, { type ReviewMemory } from "@/components/books/MemoryReview";
 import type { GalleryPhoto } from "@/components/books/PhotoGallery";
-import { bookColumns, formatDate, isBookId, type Book } from "@/lib/books";
+import { bookColumns, formatDate, isBookId, todayInUK, type Book } from "@/lib/books";
+import { daysLeftText, isOpen } from "@/lib/closing";
 import { invitePath } from "@/lib/invites";
 import { printWarning } from "@/lib/photos";
 import { signedViewUrls } from "@/lib/photos-server";
@@ -103,6 +109,7 @@ export default function BookPage({ params, searchParams }: PageProps<"/my-books/
 }
 
 async function BookDetails({ id, status, show }: { id: string; status: string; show: string }) {
+  await connection(); // uses today's date (closing date)
   if (!isBookId(id)) notFound();
   const filter: Filter = filters.some((f) => f.value === show) ? (show as Filter) : "all";
 
@@ -137,6 +144,24 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
 
   const inviteUrl = `${await siteOrigin()}${invitePath(book.invite_token)}`;
   const personName = book.known_as || book.full_name.split(/\s+/)[0];
+
+  // Is the book still welcoming memories?
+  const today = todayInUK();
+  const open = isOpen({ closesOn: book.closes_on, closedAt: book.closed_at }, today);
+  let closingHeadline: string;
+  let closingDetail: string | null = null;
+  if (open) {
+    closingHeadline = book.closes_on
+      ? `Memories welcome until ${formatDate(book.closes_on)} (${daysLeftText(book.closes_on, today)})`
+      : "Memories welcome, with no closing date set";
+  } else if (book.closed_at) {
+    closingHeadline = `You closed this book on ${formatDayUK(book.closed_at)}`;
+    closingDetail = "New memories and photos can't be added. You can reopen it at any time.";
+  } else {
+    closingHeadline = `Memories were welcome until ${formatDate(book.closes_on!)}`;
+    closingDetail = "The closing date has passed, so new memories and photos can't be added. You can reopen it at any time.";
+  }
+
   const allMemories = memories ?? [];
   const allPhotos = photos ?? [];
 
@@ -202,6 +227,21 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
         {book.known_as && <p className={styles.knownAs}>Known as {book.known_as}</p>}
         <hr className="ornament" />
       </header>
+
+      {/* ---------- Closing date ---------- */}
+      <section aria-label="Closing date" className={styles.closingSection}>
+        <BookClosing
+          open={open}
+          closesOn={book.closes_on}
+          headline={closingHeadline}
+          detail={closingDetail}
+          actions={{
+            setDate: setClosingDate.bind(null, book.id),
+            closeNow: closeBookNow.bind(null, book.id),
+            reopen: reopenBook.bind(null, book.id),
+          }}
+        />
+      </section>
 
       {/* ---------- Summary ---------- */}
       <section aria-labelledby="summary-heading" className={styles.summarySection}>
@@ -322,6 +362,11 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
             still works. Please try again.
           </p>
         )}
+        {!open && (
+          <p className="photo-warning">
+            The book is closed, so anyone opening this link sees a thank-you message instead of the form.
+          </p>
+        )}
         <InviteLink url={inviteUrl} createNewLink={createNewInviteLink.bind(null, book.id)} />
       </section>
 
@@ -377,6 +422,16 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       </section>
     </article>
   );
+}
+
+/** "17 November 2026" (UK time) */
+function formatDayUK(timestamp: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/London",
+  }).format(new Date(timestamp));
 }
 
 /** "17 November 2026 at 14:05" (UK time) */
