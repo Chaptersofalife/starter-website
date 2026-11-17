@@ -1,46 +1,34 @@
-// The frame around every page: fonts, header and footer.
+// The frame around every page: header (logo and menu) and footer.
+// The look (colours, fonts, sizes) comes from src/theme/, not from here.
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
+import Logo from "@/components/Logo";
 import SiteNav from "@/components/SiteNav";
+import { businessName } from "@/lib/site";
+import { browserBarColour, fontVariables } from "@/theme/fonts";
+import "@/theme/theme.css";
 import "./globals.css";
-
-// Elegant font for headings
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-});
-
-// Clear, easy-to-read font for body text
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   // Each page's own title is shown first, e.g. "How it works · Chapters of a Life"
   title: {
-    default: "Chapters of a Life",
-    template: "%s · Chapters of a Life",
+    default: businessName,
+    template: `%s · ${businessName}`,
   },
   description: "Personalised memorial books.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf6f0",
+  themeColor: browserBarColour,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${sourceSans.variable}`}>
+    <html lang="en" className={fontVariables}>
       <body>
         <header className="site-header">
           <div className="container">
-            <Link href="/" className="site-name">
-              Chapters of a Life
-            </Link>
+            <Logo />
             <SiteNav />
           </div>
         </header>
@@ -49,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
         <footer className="site-footer">
           <div className="container">
-            <p>© Chapters of a Life</p>
+            <p>{`© ${businessName}`}</p>
             <nav aria-label="Legal" className="footer-nav">
               <ul>
                 <li>

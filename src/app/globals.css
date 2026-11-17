@@ -1,29 +1,10 @@
 /*
-  Chapters of a Life — site-wide look.
-  Change a colour or size here and it updates everywhere on the site.
+  Chapters of a Life: site-wide layout and styles.
+
+  Colours, fonts and sizes are NOT set here. They come from the brand
+  settings in src/theme/theme.css (and fonts in src/theme/fonts.ts),
+  so you can change the look of the whole site in one place.
 */
-
-:root {
-  /* Colours */
-  --color-ivory: #faf6f0;      /* page background */
-  --color-linen: #f1e9de;      /* soft panels and sections */
-  --color-ink: #2f2a26;        /* main text */
-  --color-stone: #675d54;      /* secondary text, captions */
-  --color-sage: #556b58;       /* buttons and links */
-  --color-sage-dark: #435646;  /* buttons and links on hover */
-  --color-gold: #b8976a;       /* thin decorative lines only, never text */
-  --color-border: #e2d6c6;     /* gentle dividers */
-
-  /* Fonts (loaded in layout.tsx) */
-  --font-heading: var(--font-cormorant), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-source-sans), system-ui, -apple-system, sans-serif;
-
-  /* Spacing and widths */
-  --page-gutter: clamp(1rem, 5vw, 2.5rem);
-  --content-width: 68rem;
-  --reading-width: 38rem;
-  --radius: 6px;
-}
 
 *,
 *::before,
@@ -154,7 +135,7 @@ a:hover {
   border: 1px solid var(--color-sage);
   border-radius: var(--radius);
   background: var(--color-sage);
-  color: #fff;
+  color: var(--color-on-accent);
   font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 600;
@@ -167,7 +148,7 @@ a:hover {
 .button:hover {
   background: var(--color-sage-dark);
   border-color: var(--color-sage-dark);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .button-secondary {
@@ -202,9 +183,9 @@ a:hover {
   width: 100%;
   min-height: 48px;
   padding: 0.7rem 0.85rem;
-  border: 1px solid #8f7f6d; /* dark enough to see the box edge clearly (3:1 contrast) */
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   font: inherit;
   font-size: 1.0625rem; /* 17px+ stops phones zooming in when you tap */
@@ -247,9 +228,9 @@ a:hover {
 
 .form-error {
   padding: 0.85rem 1rem;
-  border-left: 3px solid #9a4b3c;
-  background: #fbefec;
-  color: #6e3127;
+  border-left: 3px solid var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
@@ -278,7 +259,8 @@ a:hover {
   padding-block: 1.25rem;
 }
 
-.site-name {
+/* The logo (src/components/Logo.tsx) */
+.logo {
   font-family: var(--font-heading);
   font-size: 1.6rem;
   font-weight: 600;
@@ -287,8 +269,15 @@ a:hover {
   text-decoration: none;
 }
 
-.site-name:hover {
+.logo:hover {
   color: var(--color-ink);
+}
+
+/* Used if the logo becomes an image: sets its height, keeps its shape */
+.logo img {
+  display: block;
+  height: 2.5rem;
+  width: auto;
 }
 
 .site-nav ul {
@@ -503,7 +492,7 @@ main {
   padding: 1rem 1.1rem;
   border: 1px dashed var(--color-gold);
   border-radius: var(--radius);
-  background: rgba(184, 151, 106, 0.08);
+  background: var(--color-gold-tint);
   color: var(--color-stone);
 }
 
@@ -523,7 +512,7 @@ main {
   border: 0;
   border-bottom: 1px dashed var(--color-gold);
   border-radius: 2px;
-  background: rgba(184, 151, 106, 0.12);
+  background: var(--color-gold-tint-strong);
   color: inherit;
 }
 
