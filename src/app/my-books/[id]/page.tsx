@@ -1,6 +1,8 @@
 // One book: chaptersofalife...com/my-books/<book id>
-// Row Level Security means an organiser can only ever load their own books
-// and their memories. Anyone else's book simply isn't found.
+// The organiser reviews memories here, shares the invite link, and manages
+// the cover photo and details.
+// Row Level Security means an organiser can only ever load (and change) their
+// own books, memories and photos. Anyone else's book simply isn't found.
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -15,10 +17,19 @@ import {
   removeCover,
   saveCover,
 } from "@/app/my-books/actions";
+import {
+  deleteMemory,
+  saveMemoryEdit,
+  setMemoryStatus,
+  setPhotoHidden,
+  undoMemoryEdit,
+  type MemoryStatus,
+} from "@/app/my-books/review-actions";
 import CoverPhoto from "@/components/books/CoverPhoto";
 import DeleteBook from "@/components/books/DeleteBook";
 import InviteLink from "@/components/books/InviteLink";
-import PhotoGallery, { type GalleryPhoto } from "@/components/books/PhotoGallery";
+import MemoryReview, { type ReviewMemory } from "@/components/books/MemoryReview";
+import type { GalleryPhoto } from "@/components/books/PhotoGallery";
 import { bookColumns, formatDate, isBookId, type Book } from "@/lib/books";
 import { invitePath } from "@/lib/invites";
 import { printWarning } from "@/lib/photos";
@@ -40,6 +51,9 @@ type Memory = {
   relationship: string;
   memory: string;
   sayings: string | null;
+  status: MemoryStatus;
+  edited_memory: string | null;
+  edited_sayings: string | null;
   created_at: string;
 };
 
@@ -53,6 +67,7 @@ type MemoryPhoto = {
   taken_text: string | null;
   width: number | null;
   height: number | null;
+  hidden: boolean;
 };
 
 type BookWithExtras = Book & {
@@ -61,6 +76,14 @@ type BookWithExtras = Book & {
   cover_width: number | null;
   cover_height: number | null;
 };
+
+type Filter = "all" | MemoryStatus;
+const filters: { value: Filter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "waiting", label: "Waiting" },
+  { value: "approved", label: "Approved" },
+  { value: "hidden", label: "Hidden" },
+];
 
 export default function BookPage({ params, searchParams }: PageProps<"/my-books/[id]">) {
   return (
@@ -71,7 +94,7 @@ export default function BookPage({ params, searchParams }: PageProps<"/my-books/
         </p>
         <Suspense fallback={<p className="muted">Loading the book…</p>}>
           {Promise.all([params, searchParams]).then(([{ id }, query]) => (
-            <BookDetails id={id} status={String(query.status ?? "")} />
+            <BookDetails id={id} status={String(query.status ?? "")} show={String(query.show ?? "all")} />
           ))}
         </Suspense>
       </div>
@@ -79,8 +102,9 @@ export default function BookPage({ params, searchParams }: PageProps<"/my-books/
   );
 }
 
-async function BookDetails({ id, status }: { id: string; status: string }) {
+async function BookDetails({ id, status, show }: { id: string; status: string; show: string }) {
   if (!isBookId(id)) notFound();
+  const filter: Filter = filters.some((f) => f.value === show) ? (show as Filter) : "all";
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -94,13 +118,15 @@ async function BookDetails({ id, status }: { id: string; status: string }) {
       .maybeSingle<BookWithExtras>(),
     supabase
       .from("memories")
-      .select("id, contributor_name, contributor_email, relationship, memory, sayings, created_at")
+      .select(
+        "id, contributor_name, contributor_email, relationship, memory, sayings, status, edited_memory, edited_sayings, created_at",
+      )
       .eq("book_id", id)
       .order("created_at", { ascending: false })
       .returns<Memory[]>(),
     supabase
       .from("memory_photos")
-      .select("id, memory_id, position, display_path, thumb_path, caption, taken_text, width, height")
+      .select("id, memory_id, position, display_path, thumb_path, caption, taken_text, width, height, hidden")
       .eq("book_id", id)
       .eq("uploaded", true)
       .order("position")
@@ -111,14 +137,29 @@ async function BookDetails({ id, status }: { id: string; status: string }) {
 
   const inviteUrl = `${await siteOrigin()}${invitePath(book.invite_token)}`;
   const personName = book.known_as || book.full_name.split(/\s+/)[0];
+  const allMemories = memories ?? [];
+  const allPhotos = photos ?? [];
 
-  // Private viewing links (valid for an hour) for the cover and all photos.
+  // The summary at the top.
+  const count = (s: MemoryStatus) => allMemories.filter((m) => m.status === s).length;
+  const summary = {
+    memories: allMemories.length,
+    photos: allPhotos.length,
+    approved: count("approved"),
+    waiting: count("waiting"),
+    hidden: count("hidden"),
+  };
+  const shown = filter === "all" ? allMemories : allMemories.filter((m) => m.status === filter);
+
+  // Private viewing links (valid for an hour) for the cover and the photos shown.
+  const shownIds = new Set(shown.map((m) => m.id));
+  const shownPhotos = allPhotos.filter((p) => shownIds.has(p.memory_id));
   const urls = await signedViewUrls([
     book.cover_display_path,
-    ...(photos ?? []).flatMap((p) => [p.thumb_path, p.display_path]),
+    ...shownPhotos.flatMap((p) => [p.thumb_path, p.display_path]),
   ]);
   const photosByMemory = new Map<string, GalleryPhoto[]>();
-  for (const p of photos ?? []) {
+  for (const p of shownPhotos) {
     const list = photosByMemory.get(p.memory_id) ?? [];
     list.push({
       id: p.id,
@@ -129,12 +170,22 @@ async function BookDetails({ id, status }: { id: string; status: string }) {
       width: p.width,
       height: p.height,
       warning: printWarning(p.width ?? 0, p.height ?? 0),
+      hidden: p.hidden,
     });
     photosByMemory.set(p.memory_id, list);
   }
 
+  const reviewActions = {
+    setStatus: setMemoryStatus,
+    saveEdit: saveMemoryEdit,
+    undoEdit: undoMemoryEdit,
+    setPhotoHidden,
+    deleteMemory,
+    getDownloadUrl: getOriginalDownloadUrl,
+  };
+
   return (
-    <article className={styles.book}>
+    <article className={styles.bookWide}>
       {status === "saved" && (
         <p className={styles.notice} role="status">
           Your changes have been saved.
@@ -152,56 +203,104 @@ async function BookDetails({ id, status }: { id: string; status: string }) {
         <hr className="ornament" />
       </header>
 
-      <section className={styles.coverSection} aria-labelledby="cover-heading">
-        <h2 id="cover-heading" className="visually-hidden">
-          Cover photo
+      {/* ---------- Summary ---------- */}
+      <section aria-labelledby="summary-heading" className={styles.summarySection}>
+        <h2 id="summary-heading" className="visually-hidden">
+          Summary
         </h2>
-        <CoverPhoto
-          bookName={book.full_name}
-          coverUrl={urls.get(book.cover_display_path ?? "") ?? null}
-          warning={book.cover_display_path ? printWarning(book.cover_width ?? 0, book.cover_height ?? 0) : null}
-          prepareUpload={prepareCoverUpload.bind(null, book.id)}
-          save={saveCover.bind(null, book.id)}
-          remove={removeCover.bind(null, book.id)}
-          abandon={abandonCoverUpload.bind(null, book.id)}
-        />
-      </section>
-
-      <dl className={styles.details}>
-        <div>
-          <dt>Born</dt>
-          <dd>{formatDate(book.date_of_birth) || "Not added yet"}</dd>
-        </div>
-        <div>
-          <dt>Died</dt>
-          <dd>{formatDate(book.date_of_death) || "Not added yet"}</dd>
-        </div>
-        {book.lived_in && (
+        <dl className={styles.summary}>
           <div>
-            <dt>Lived in</dt>
-            <dd>{book.lived_in}</dd>
+            <dt>Memories received</dt>
+            <dd>{summary.memories}</dd>
           </div>
-        )}
-      </dl>
-
-      <section className={styles.introduction} aria-labelledby="intro-heading">
-        <h2 id="intro-heading">Introduction</h2>
-        {book.introduction ? (
-          <p className={styles.introText}>{book.introduction}</p>
-        ) : (
+          <div>
+            <dt>Photos received</dt>
+            <dd>{summary.photos}</dd>
+          </div>
+          <div className={styles.summaryApproved}>
+            <dt>Approved</dt>
+            <dd>{summary.approved}</dd>
+          </div>
+          <div className={styles.summaryWaiting}>
+            <dt>Waiting for review</dt>
+            <dd>{summary.waiting}</dd>
+          </div>
+          <div className={styles.summaryHidden}>
+            <dt>Hidden</dt>
+            <dd>{summary.hidden}</dd>
+          </div>
+        </dl>
+        {summary.memories === 0 && (
           <p className="muted">
-            No introduction yet. You can add a few words about them by editing
-            the details.
+            No memories yet. <a href="#invite">Share your invite link</a> with family and friends,
+            and their memories will appear here for you to review.
           </p>
         )}
       </section>
 
-      <div className={styles.bookActions}>
-        <Link href={`/my-books/${book.id}/edit`} className="button">
-          Edit details
-        </Link>
-        <DeleteBook action={deleteBook.bind(null, book.id)} bookName={book.full_name} />
-      </div>
+      {/* ---------- Memories ---------- */}
+      {summary.memories > 0 && (
+        <section id="memories" className={styles.reviewSection} aria-labelledby="memories-heading">
+          <div className={styles.reviewHead}>
+            <h2 id="memories-heading">Memories</h2>
+            <p className="muted">
+              Approved memories will go in the book. Hidden ones are kept safely, but left out.
+            </p>
+          </div>
+
+          <nav aria-label="Show memories" className={styles.filters}>
+            {filters.map((f) => {
+              const n = f.value === "all" ? summary.memories : summary[f.value];
+              return (
+                <Link
+                  key={f.value}
+                  href={f.value === "all" ? `/my-books/${book.id}#memories` : `/my-books/${book.id}?show=${f.value}#memories`}
+                  className={styles.filter}
+                  aria-current={filter === f.value ? "page" : undefined}
+                  scroll={false}
+                >
+                  {f.label} <span className={styles.filterCount}>{n}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {memoriesError ? (
+            <p className="form-error" role="alert">
+              Sorry, we couldn&rsquo;t load the memories just now. Please refresh the page.
+            </p>
+          ) : shown.length === 0 ? (
+            <p className="muted">
+              {filter === "waiting" && "Nothing is waiting for review. You're all caught up."}
+              {filter === "approved" && "No memories have been approved yet."}
+              {filter === "hidden" && "No memories are hidden."}
+            </p>
+          ) : (
+            <ol className={styles.reviewList}>
+              {shown.map((m) => {
+                const memory: ReviewMemory = {
+                  id: m.id,
+                  contributorName: m.contributor_name,
+                  contributorEmail: m.contributor_email,
+                  relationship: m.relationship,
+                  sentAt: formatSent(m.created_at),
+                  status: m.status,
+                  originalMemory: m.memory,
+                  originalSayings: m.sayings,
+                  editedMemory: m.edited_memory,
+                  editedSayings: m.edited_sayings,
+                  photos: photosByMemory.get(m.id) ?? [],
+                };
+                return (
+                  <li key={m.id}>
+                    <MemoryReview memory={memory} actions={reviewActions} />
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      )}
 
       {/* ---------- Invite family and friends ---------- */}
       <section id="invite" className={styles.section} aria-labelledby="invite-heading">
@@ -226,65 +325,75 @@ async function BookDetails({ id, status }: { id: string; status: string }) {
         <InviteLink url={inviteUrl} createNewLink={createNewInviteLink.bind(null, book.id)} />
       </section>
 
-      {/* ---------- Memories received ---------- */}
-      <section className={styles.section} aria-labelledby="memories-heading">
-        <h2 id="memories-heading">
-          Memories received{memories && memories.length > 0 ? ` (${memories.length})` : ""}
-        </h2>
+      {/* ---------- Cover photo ---------- */}
+      <section className={styles.section} aria-labelledby="cover-heading">
+        <h2 id="cover-heading">Cover photo</h2>
+        <CoverPhoto
+          bookName={book.full_name}
+          coverUrl={urls.get(book.cover_display_path ?? "") ?? null}
+          warning={book.cover_display_path ? printWarning(book.cover_width ?? 0, book.cover_height ?? 0) : null}
+          prepareUpload={prepareCoverUpload.bind(null, book.id)}
+          save={saveCover.bind(null, book.id)}
+          remove={removeCover.bind(null, book.id)}
+          abandon={abandonCoverUpload.bind(null, book.id)}
+        />
+      </section>
 
-        {memoriesError ? (
-          <p className="form-error" role="alert">
-            Sorry, we couldn&rsquo;t load the memories just now. Please refresh the page.
-          </p>
-        ) : !memories || memories.length === 0 ? (
-          <p className="muted">
-            No memories yet. When family and friends use your link, their
-            memories will appear here, newest first.
-          </p>
-        ) : (
-          <ol className={styles.memories}>
-            {memories.map((m) => (
-              <li key={m.id} className={styles.memory}>
-                <header className={styles.memoryHeader}>
-                  <p className={styles.memoryName}>{m.contributor_name}</p>
-                  <p className={styles.memoryMeta}>
-                    {m.relationship} · {formatReceived(m.created_at)}
-                  </p>
-                </header>
-                <p className={styles.memoryText}>{m.memory}</p>
-                {photosByMemory.has(m.id) && (
-                  <PhotoGallery
-                    photos={photosByMemory.get(m.id)!}
-                    contributorName={m.contributor_name}
-                    getDownloadUrl={getOriginalDownloadUrl}
-                  />
-                )}
-                {m.sayings && (
-                  <blockquote className={styles.sayings}>
-                    <p className={styles.sayingsLabel}>Favourite sayings</p>
-                    <p className={styles.memoryText}>{m.sayings}</p>
-                  </blockquote>
-                )}
-                <p className={styles.memoryEmail}>
-                  <a href={`mailto:${m.contributor_email}`}>{m.contributor_email}</a>
-                </p>
-              </li>
-            ))}
-          </ol>
-        )}
+      {/* ---------- Details ---------- */}
+      <section className={styles.section} aria-labelledby="details-heading">
+        <h2 id="details-heading">About {personName}</h2>
+        <dl className={styles.details}>
+          <div>
+            <dt>Born</dt>
+            <dd>{formatDate(book.date_of_birth) || "Not added yet"}</dd>
+          </div>
+          <div>
+            <dt>Died</dt>
+            <dd>{formatDate(book.date_of_death) || "Not added yet"}</dd>
+          </div>
+          {book.lived_in && (
+            <div>
+              <dt>Lived in</dt>
+              <dd>{book.lived_in}</dd>
+            </div>
+          )}
+        </dl>
+        <div className={styles.introduction}>
+          <h3>Introduction</h3>
+          {book.introduction ? (
+            <p className={styles.introText}>{book.introduction}</p>
+          ) : (
+            <p className="muted">
+              No introduction yet. You can add a few words about them by editing the details.
+            </p>
+          )}
+        </div>
+        <div className={styles.bookActions}>
+          <Link href={`/my-books/${book.id}/edit`} className="button">
+            Edit details
+          </Link>
+          <DeleteBook action={deleteBook.bind(null, book.id)} bookName={book.full_name} />
+        </div>
       </section>
     </article>
   );
 }
 
-/** "17 November 2026" */
-function formatReceived(timestamp: string) {
-  return new Intl.DateTimeFormat("en-GB", {
+/** "17 November 2026 at 14:05" (UK time) */
+function formatSent(timestamp: string) {
+  const date = new Date(timestamp);
+  const day = new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: "Europe/London",
-  }).format(new Date(timestamp));
+  }).format(date);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  }).format(date);
+  return `${day} at ${time}`;
 }
 
 // The address of the site being used (live site, preview or your computer),

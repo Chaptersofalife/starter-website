@@ -2,6 +2,7 @@
 
 // A memory's photos as thumbnails. Clicking one opens it full size, with its
 // caption, arrows to move between photos, and "Download original".
+// The organiser can also hide single photos from the book.
 
 import { useRef, useState } from "react";
 
@@ -14,6 +15,8 @@ export type GalleryPhoto = {
   width: number | null;
   height: number | null;
   warning: string | null;
+  /** Hidden photos are kept, but won't go in the book. */
+  hidden?: boolean;
 };
 
 type PhotoGalleryProps = {
@@ -21,9 +24,19 @@ type PhotoGalleryProps = {
   contributorName: string;
   /** Gets a one-hour download link for the original, full-quality file. */
   getDownloadUrl: (photoId: string) => Promise<string | null>;
+  /** Hides a photo from the book, or shows it again. */
+  onToggleHidden?: (photoId: string, hidden: boolean) => void;
+  /** True while a change is saving. */
+  busy?: boolean;
 };
 
-export default function PhotoGallery({ photos, contributorName, getDownloadUrl }: PhotoGalleryProps) {
+export default function PhotoGallery({
+  photos,
+  contributorName,
+  getDownloadUrl,
+  onToggleHidden,
+  busy,
+}: PhotoGalleryProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState(0);
   const [downloading, setDownloading] = useState(false);
@@ -60,8 +73,9 @@ export default function PhotoGallery({ photos, contributorName, getDownloadUrl }
     <>
       <ul className="gallery">
         {photos.map((photo, i) => (
-          <li key={photo.id}>
+          <li key={photo.id} className={photo.hidden ? "gallery-hidden" : undefined}>
             <button type="button" className="gallery-thumb" onClick={() => open(i)}>
+              {photo.hidden && <span className="gallery-hidden-label">Hidden</span>}
               {photo.thumbUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- private link that expires; not cached by Next.js
                 <img src={photo.thumbUrl} alt="" loading="lazy" />
@@ -76,6 +90,17 @@ export default function PhotoGallery({ photos, contributorName, getDownloadUrl }
                 {photo.caption && photo.taken ? " · " : ""}
                 {photo.taken && <span className="gallery-taken">{photo.taken}</span>}
               </p>
+            )}
+            {onToggleHidden && (
+              <button
+                type="button"
+                className="link-button gallery-toggle"
+                disabled={busy}
+                onClick={() => onToggleHidden(photo.id, !photo.hidden)}
+              >
+                {photo.hidden ? "Show in book" : "Hide from book"}
+                <span className="visually-hidden"> (photo {i + 1})</span>
+              </button>
             )}
           </li>
         ))}
@@ -101,6 +126,9 @@ export default function PhotoGallery({ photos, contributorName, getDownloadUrl }
                     .join(" · ")}
                   {photos.length > 1 && ` · ${index + 1} of ${photos.length}`}
                 </p>
+                {current.hidden && (
+                  <p className="photo-warning">This photo is hidden and won&rsquo;t go in the book.</p>
+                )}
                 {current.warning && <p className="photo-warning">{current.warning}</p>}
                 {downloadError && (
                   <p className="form-error" role="alert">
@@ -112,6 +140,16 @@ export default function PhotoGallery({ photos, contributorName, getDownloadUrl }
                 <button type="button" className="button" onClick={() => download(current.id)} disabled={downloading}>
                   {downloading ? "Preparing download…" : "Download original"}
                 </button>
+                {onToggleHidden && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    disabled={busy}
+                    onClick={() => onToggleHidden(current.id, !current.hidden)}
+                  >
+                    {current.hidden ? "Show in book" : "Hide from book"}
+                  </button>
+                )}
                 {photos.length > 1 && (
                   <>
                     <button type="button" className="button button-secondary" onClick={() => step(-1)}>
