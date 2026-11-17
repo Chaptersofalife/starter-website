@@ -1,0 +1,57 @@
+/*
+  ============================================================================
+  Chapters of a Life: brand settings (colours, fonts, shapes and sizes)
+  ============================================================================
+
+  This is the ONE place to change the look of the whole site.
+  Every page and component uses these settings, so a change here updates
+  everything at once. Nothing else on the site has its own colours.
+
+  - Colours: change the hex codes below (e.g. #556b58).
+  - Fonts: choose WHICH fonts in src/theme/fonts.ts. The lines further down
+    here only give each font a backup, in case it hasn't loaded yet.
+  - Logo: src/components/Logo.tsx
+  - The colour of the phone's browser bar: src/theme/fonts.ts (browserBarColour)
+
+  Tip: when you change a colour, keep text readable. Text on a background
+  should have strong contrast (a free checker: webaim.org/resources/contrastchecker).
+*/
+
+:root {
+  /* ---------- Main brand colours ---------- */
+  --color-ivory: #faf6f0;      /* page background */
+  --color-linen: #f1e9de;      /* soft panels and sections */
+  --color-ink: #2f2a26;        /* main text and headings */
+  --color-stone: #675d54;      /* secondary text, captions */
+  --color-sage: #556b58;       /* buttons and links */
+  --color-sage-dark: #435646;  /* buttons and links on hover */
+  --color-gold: #b8976a;       /* thin decorative lines only, never text */
+  --color-border: #e2d6c6;     /* gentle dividers */
+
+  /* ---------- Supporting colours ---------- */
+  --color-surface: #ffffff;       /* inside form boxes and cards */
+  --color-on-accent: #ffffff;     /* text on sage buttons */
+  --color-input-border: #8f7f6d;  /* edges of form boxes (keep it clearly visible) */
+  --color-error: #9a4b3c;         /* line beside an error message */
+  --color-error-bg: #fbefec;      /* background of an error message */
+  --color-error-text: #6e3127;    /* text of an error message */
+
+  /* Soft tints, made automatically from the colours above */
+  --color-gold-tint: color-mix(in srgb, var(--color-gold) 8%, transparent);
+  --color-gold-tint-strong: color-mix(in srgb, var(--color-gold) 12%, transparent);
+  --shadow-page:
+    0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-ink) 6%, transparent);
+
+  /* ---------- Fonts ---------- */
+  /* The fonts themselves are chosen in src/theme/fonts.ts.
+     The names after the first are backups used while the font loads. */
+  --font-heading: var(--font-brand-heading), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-brand-body), system-ui, -apple-system, sans-serif;
+
+  /* ---------- Shapes and sizes ---------- */
+  --radius: 6px;                            /* roundness of corners */
+  --page-gutter: clamp(1rem, 5vw, 2.5rem);  /* space at the page edges */
+  --content-width: 68rem;                   /* widest the page content gets */
+  --reading-width: 38rem;                   /* comfortable width for text */
+}
