@@ -1,0 +1,55 @@
+/* Styles for the page contributors open from an invite link. */
+
+/* Welcome beside the form on wide screens, stacked on phones */
+.layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: start;
+}
+
+.intro {
+  min-width: 0;
+  max-width: var(--reading-width);
+}
+
+.intro h1 {
+  overflow-wrap: anywhere;
+}
+
+.eyebrow {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-stone);
+}
+
+.knownAs {
+  margin-top: 0.5rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  font-style: italic;
+  color: var(--color-stone);
+}
+
+.dates {
+  margin-top: 0.5rem;
+  font-size: 1.15rem;
+  color: var(--color-stone);
+}
+
+.lead {
+  margin-top: 1rem;
+  font-size: clamp(1.1rem, 2vw, 1.2rem);
+  color: var(--color-stone);
+}
+
+.formPanel {
+  min-width: 0;
+  max-width: 38rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  background: var(--color-linen);
+  border-radius: var(--radius);
+}

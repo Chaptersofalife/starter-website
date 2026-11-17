@@ -4,6 +4,7 @@
 // These run on the server. Supabase's Row Level Security also checks every
 // request, so an organiser can only ever touch their own books.
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -165,6 +166,34 @@ export async function updateBook(
 
   revalidatePath("/my-books");
   redirect(`/my-books/${bookId}?status=saved`);
+}
+
+/**
+ * Makes a new private invite link for a book. The old link stops working
+ * straight away, because the old code no longer matches any book.
+ */
+export async function createNewInviteLink(bookId: string) {
+  if (!isBookId(bookId)) {
+    redirect("/my-books");
+  }
+
+  // 64 random characters (256 bits) from the server's secure random
+  // generator. Practically impossible to guess.
+  const token = randomBytes(32).toString("hex");
+
+  const supabase = await signedInClient();
+  const { data, error } = await supabase
+    .from("books")
+    .update({ invite_token: token })
+    .eq("id", bookId)
+    .select("id");
+
+  if (error || !data || data.length === 0) {
+    if (error) console.error("New invite link failed:", error.code, error.message);
+    redirect(`/my-books/${bookId}?status=link-failed#invite`);
+  }
+
+  redirect(`/my-books/${bookId}?status=new-link#invite`);
 }
 
 export async function deleteBook(bookId: string) {

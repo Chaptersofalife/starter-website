@@ -252,6 +252,89 @@ a:hover {
   color: var(--color-ink);
 }
 
+/* A calmer "are you sure?" for things that aren't deletions */
+.confirm-panel-gentle {
+  border-color: var(--color-gold);
+  background: var(--color-linen);
+}
+
+/* ---------- Private invite link ---------- */
+
+.invite {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  margin-top: 0.5rem;
+}
+
+.invite-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.invite-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.invite-row input {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.invite-row input:focus-visible {
+  outline: 2px solid var(--color-sage);
+  outline-offset: 1px;
+}
+
+.invite-status {
+  min-height: 1.5em;
+  font-size: 0.95rem;
+  color: var(--color-stone);
+}
+
+/* ---------- Sharing a memory ---------- */
+
+.prompts {
+  padding: 1rem 1.1rem;
+  border-left: 2px solid var(--color-gold);
+  background: var(--color-gold-tint);
+  font-size: 1rem;
+  color: var(--color-stone);
+}
+
+.prompts ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-style: italic;
+  color: var(--color-ink);
+}
+
+.prompts li + li {
+  margin-top: 0.15rem;
+}
+
+.thank-you {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.thank-you p {
+  color: var(--color-stone);
+}
+
 .button:disabled {
   opacity: 0.7;
   cursor: wait;
