@@ -17,6 +17,18 @@
   overflow-wrap: anywhere;
 }
 
+/* The cover photo */
+.cover {
+  display: block;
+  width: 100%;
+  max-width: 26rem;
+  max-height: 32rem;
+  object-fit: cover;
+  margin-bottom: 1.75rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-page);
+}
+
 .eyebrow {
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
