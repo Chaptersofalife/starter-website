@@ -3,7 +3,8 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import Logo from "@/components/Logo";
-import SiteNav from "@/components/SiteNav";
+import { Suspense } from "react";
+import SiteNav, { SiteNavLinks } from "@/components/SiteNav";
 import { businessName } from "@/lib/site";
 import { browserBarColour, fontVariables } from "@/theme/fonts";
 import "@/theme/theme.css";
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="site-header">
           <div className="container">
             <Logo />
-            <SiteNav />
+            <Suspense fallback={<SiteNavLinks />}>
+              <SiteNav />
+            </Suspense>
           </div>
         </header>
 

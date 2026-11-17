@@ -27,6 +27,20 @@ export default function SiteNav() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  return <SiteNavLinks pathname={pathname} signedIn={signedIn} />;
+}
+
+/**
+ * The menu itself. Also shown for a moment on pages whose address is only
+ * known when someone opens them (like a book), until SiteNav takes over.
+ */
+export function SiteNavLinks({
+  pathname = null,
+  signedIn = false,
+}: {
+  pathname?: string | null;
+  signedIn?: boolean;
+}) {
   const accountLink = signedIn
     ? { href: "/my-books", label: "My books" }
     : { href: "/login", label: "Log in" };
