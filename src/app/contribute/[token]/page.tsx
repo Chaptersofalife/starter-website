@@ -4,10 +4,11 @@
 // form to share a memory. Nothing else about the book is visible here.
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { submitMemory } from "@/app/contribute/actions";
+import { abandonMemoryPhoto, finishMemoryPhotos, submitMemory } from "@/app/contribute/actions";
 import MemoryForm from "@/components/contribute/MemoryForm";
 import { lifeDates } from "@/lib/books";
 import { isInviteToken } from "@/lib/invites";
+import { signedViewUrls } from "@/lib/photos-server";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -23,6 +24,7 @@ type Invite = {
   known_as: string | null;
   date_of_birth: string | null;
   date_of_death: string | null;
+  cover_display_path: string | null;
 };
 
 export default function ContributePage({ params }: PageProps<"/contribute/[token]">) {
@@ -63,10 +65,18 @@ async function Contribute({ token }: { token: string }) {
 
   const personName = invite.known_as || invite.full_name.split(/\s+/)[0];
   const dates = lifeDates(invite);
+  // A private viewing link for the cover photo, valid for an hour.
+  const coverUrl = (await signedViewUrls([invite.cover_display_path])).get(
+    invite.cover_display_path ?? "",
+  );
 
   return (
     <div className={styles.layout}>
       <header className={styles.intro}>
+        {coverUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- private link that expires; not cached by Next.js
+          <img src={coverUrl} alt={`A photograph of ${invite.full_name}`} className={styles.cover} />
+        )}
         <p className={styles.eyebrow}>In loving memory of</p>
         <h1>{invite.full_name}</h1>
         {invite.known_as && <p className={styles.knownAs}>Known as {invite.known_as}</p>}
@@ -83,7 +93,12 @@ async function Contribute({ token }: { token: string }) {
       </header>
 
       <div className={styles.formPanel}>
-        <MemoryForm action={submitMemory.bind(null, token)} personName={personName} />
+        <MemoryForm
+          submit={submitMemory.bind(null, token)}
+          finishPhotos={finishMemoryPhotos.bind(null, token)}
+          abandonPhoto={abandonMemoryPhoto.bind(null, token)}
+          personName={personName}
+        />
       </div>
     </div>
   );

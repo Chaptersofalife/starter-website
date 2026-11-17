@@ -1,42 +1,153 @@
 "use client";
 
-// The form contributors use to share a memory. No account needed.
+// The form contributors use to share a memory and photos. No account needed.
 
-import { useActionState, useState } from "react";
-import type { MemoryFields, MemoryFormState } from "@/app/contribute/actions";
+import { useEffect, useState } from "react";
+import type { MemoryFields, MemoryResult } from "@/app/contribute/actions";
 import FormError from "@/components/auth/FormError";
 import { memoryLimits, memoryPrompts } from "@/lib/invites";
+import { uploadPhotoFiles } from "@/lib/photos-client";
+import PhotoPicker, { type PickedPhoto } from "./PhotoPicker";
 
 type MemoryFormProps = {
-  action: (state: MemoryFormState, formData: FormData) => Promise<MemoryFormState>;
+  /** Sends the memory (the invite link is already attached). */
+  submit: (formData: FormData) => Promise<MemoryResult>;
+  /** Confirms which photos arrived safely. */
+  finishPhotos: (memoryId: string, photoIds: string[]) => Promise<{ received: number }>;
+  /** Tidies up a photo that couldn't be uploaded. */
+  abandonPhoto: (memoryId: string, photoId: string) => Promise<void>;
   /** The name to use in the wording, e.g. "Peggy". */
   personName: string;
 };
 
-export default function MemoryForm({ action, personName }: MemoryFormProps) {
-  const [state, formAction, pending] = useActionState<MemoryFormState, FormData>(action, {});
-  // Shows the form again after "Add another memory".
-  const [addingAnother, setAddingAnother] = useState(0);
-  const [lastSentKey, setLastSentKey] = useState<MemoryFormState | null>(null);
-  const showThanks = state.sent && lastSentKey !== state;
+type Phase = "editing" | "sending" | "uploading" | "done";
 
-  if (showThanks) {
-    const firstName = state.values?.contributor_name.split(/\s+/)[0] ?? "";
+export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personName }: MemoryFormProps) {
+  const [phase, setPhase] = useState<Phase>("editing");
+  const [result, setResult] = useState<MemoryResult>({});
+  const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [summary, setSummary] = useState({ firstName: "", sent: 0, failed: 0 });
+  // Their details, kept for "Add another memory".
+  const [kept, setKept] = useState<Partial<MemoryFields>>({});
+  const [formKey, setFormKey] = useState(0);
+
+  // Ask before leaving the page while photos are still uploading.
+  useEffect(() => {
+    if (phase !== "uploading" && phase !== "sending") return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [phase]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (photos.some((p) => p.status === "preparing")) {
+      setResult({ error: "Please wait a moment while your photos finish preparing." });
+      return;
+    }
+    if (photos.some((p) => p.status === "error")) {
+      setResult({ error: "Please remove the photos that can't be used before sending." });
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const ready = photos.filter((p) => p.status === "ready" && p.prepared);
+    formData.set(
+      "photos",
+      JSON.stringify(
+        ready.map((p) => ({
+          name: p.prepared!.original.name,
+          mime: p.prepared!.mime,
+          size: p.prepared!.original.size,
+          width: p.prepared!.width,
+          height: p.prepared!.height,
+          caption: p.caption,
+          taken: p.taken,
+        })),
+      ),
+    );
+
+    setPhase("sending");
+    setResult({});
+    let res: MemoryResult;
+    try {
+      res = await submit(formData);
+    } catch {
+      res = { error: "Sorry, your memory couldn't be sent just now. Please check your connection and try again." };
+    }
+    if (!res.ok) {
+      setResult(res);
+      setPhase("editing");
+      return;
+    }
+
+    const name = String(formData.get("contributor_name") ?? "").trim();
+    setKept({
+      contributor_name: name,
+      contributor_email: String(formData.get("contributor_email") ?? ""),
+      relationship: String(formData.get("relationship") ?? ""),
+    });
+
+    // Upload each photo straight to the private photo store.
+    const uploads = res.uploads ?? [];
+    const succeeded: string[] = [];
+    let failed = res.photosFailed ? ready.length : 0;
+    if (uploads.length > 0 && res.memoryId) {
+      setPhase("uploading");
+      setProgress({ done: 0, total: uploads.length });
+      for (const [i, upload] of uploads.entries()) {
+        try {
+          await uploadPhotoFiles(ready[i].prepared!, upload.targets);
+          succeeded.push(upload.photoId);
+        } catch {
+          failed++;
+          await abandonPhoto(res.memoryId, upload.photoId).catch(() => {});
+        }
+        setProgress({ done: i + 1, total: uploads.length });
+      }
+      if (succeeded.length > 0) {
+        await finishPhotos(res.memoryId, succeeded).catch(() => {});
+      }
+    }
+
+    setSummary({ firstName: name.split(/\s+/)[0] ?? "", sent: succeeded.length, failed });
+    clearPhotos();
+    setPhase("done");
+  }
+
+  function clearPhotos() {
+    setPhotos((current) => {
+      current.forEach((p) => p.prepared && URL.revokeObjectURL(p.prepared.previewUrl));
+      return [];
+    });
+  }
+
+  if (phase === "done") {
     return (
       <div className="thank-you" role="status">
-        <h2>Thank you{firstName ? `, ${firstName}` : ""}</h2>
+        <h2>Thank you{summary.firstName ? `, ${summary.firstName}` : ""}</h2>
         <p>
-          Your memory of {personName} has been sent to the family. It will mean
-          a great deal to them.
+          Your memory of {personName}
+          {summary.sent > 0 ? ` and ${summary.sent === 1 ? "your photo" : `your ${summary.sent} photos`}` : ""}{" "}
+          {summary.sent > 0 ? "have" : "has"} been sent to the family. It will mean a great deal to them.
         </p>
+        {summary.failed > 0 && (
+          <p className="photo-warning">
+            {summary.failed === 1 ? "One photo" : `${summary.failed} photos`} couldn&rsquo;t be
+            uploaded, perhaps because of a weak connection. Your words arrived safely. You can
+            add the {summary.failed === 1 ? "photo" : "photos"} again with another memory.
+          </p>
+        )}
         <p>If something else comes to mind, you&rsquo;re very welcome to add another.</p>
         <div className="actions">
           <button
             type="button"
             className="button"
             onClick={() => {
-              setLastSentKey(state);
-              setAddingAnother((n) => n + 1);
+              setResult({});
+              setFormKey((k) => k + 1);
+              setPhase("editing");
             }}
           >
             Add another memory
@@ -46,17 +157,8 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
     );
   }
 
-  // After sending, keep their name, email and relationship, but start a fresh memory.
-  const justSent = lastSentKey === state;
-  const values: Partial<MemoryFields> = justSent
-    ? {
-        contributor_name: state.values?.contributor_name,
-        contributor_email: state.values?.contributor_email,
-        relationship: state.values?.relationship,
-      }
-    : (state.values ?? {});
-  const errors = justSent ? {} : (state.fieldErrors ?? {});
-
+  const busy = phase === "sending" || phase === "uploading";
+  const errors = result.fieldErrors ?? {};
   const errorProps = (name: keyof MemoryFields, hintId?: string) => ({
     "aria-invalid": errors[name] ? true : undefined,
     "aria-describedby":
@@ -70,12 +172,7 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
     ) : null;
 
   return (
-    <form
-      action={formAction}
-      className="form"
-      key={`${addingAnother}-${JSON.stringify(state.values ?? {})}`}
-      noValidate
-    >
+    <form onSubmit={handleSubmit} className="form" key={formKey} noValidate>
       {/* When the form appeared, for spam protection (robots send instantly) */}
       <input
         type="hidden"
@@ -101,7 +198,7 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
           type="text"
           autoComplete="name"
           maxLength={memoryLimits.contributor_name}
-          defaultValue={values.contributor_name ?? ""}
+          defaultValue={kept.contributor_name ?? ""}
           required
           {...errorProps("contributor_name")}
         />
@@ -116,7 +213,7 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
           type="email"
           autoComplete="email"
           maxLength={memoryLimits.contributor_email}
-          defaultValue={values.contributor_email ?? ""}
+          defaultValue={kept.contributor_email ?? ""}
           required
           {...errorProps("contributor_email", "contributor_email-hint")}
         />
@@ -134,7 +231,7 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
           name="relationship"
           type="text"
           maxLength={memoryLimits.relationship}
-          defaultValue={values.relationship ?? ""}
+          defaultValue={kept.relationship ?? ""}
           required
           {...errorProps("relationship", "relationship-hint")}
         />
@@ -161,7 +258,6 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
           name="memory"
           rows={12}
           maxLength={memoryLimits.memory}
-          defaultValue={values.memory ?? ""}
           required
           {...errorProps("memory", "memory-prompts")}
         />
@@ -177,7 +273,6 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
           name="sayings"
           rows={3}
           maxLength={memoryLimits.sayings}
-          defaultValue={values.sayings ?? ""}
           {...errorProps("sayings", "sayings-hint")}
         />
         <p id="sayings-hint" className="field-hint">
@@ -186,11 +281,20 @@ export default function MemoryForm({ action, personName }: MemoryFormProps) {
         {fieldError("sayings")}
       </div>
 
-      <FormError message={justSent ? undefined : state.error} />
+      <PhotoPicker photos={photos} onChange={setPhotos} disabled={busy} personName={personName} />
+
+      <FormError message={result.error} />
+
+      {phase === "uploading" && (
+        <p className="upload-progress" role="status">
+          Your memory has been saved. Uploading photos: {progress.done} of {progress.total}.
+          Please keep this page open.
+        </p>
+      )}
 
       <div>
-        <button type="submit" className="button" disabled={pending}>
-          {pending ? "Sending…" : "Send my memory"}
+        <button type="submit" className="button" disabled={busy}>
+          {phase === "sending" ? "Sending…" : phase === "uploading" ? "Uploading photos…" : "Send my memory"}
         </button>
       </div>
     </form>

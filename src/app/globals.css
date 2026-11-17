@@ -326,6 +326,295 @@ a:hover {
   margin-top: 0.15rem;
 }
 
+/* ---------- Photos ---------- */
+
+/* A gentle note, e.g. "this photo may look soft when printed" */
+.photo-warning {
+  padding: 0.6rem 0.85rem;
+  border-left: 2px solid var(--color-gold);
+  background: var(--color-gold-tint-strong);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.photo-picker {
+  display: grid;
+  gap: 1rem;
+}
+
+.photo-picker-head {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* The gap above already spaces these */
+.photo-picker-head p {
+  margin-top: 0;
+}
+
+.photo-picker-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.photo-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+/* Each chosen photo: preview beside its details, stacked on narrow phones */
+.photo-card {
+  display: grid;
+  grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+@media (max-width: 380px) {
+  .photo-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.photo-preview {
+  aspect-ratio: 1;
+  max-width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--color-linen);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-preparing {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--color-stone);
+}
+
+.photo-details {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.photo-details .field label {
+  font-size: 0.95rem;
+}
+
+.photo-remove {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  color: var(--color-error);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.photo-remove:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.photo-add {
+  cursor: pointer;
+}
+
+/* Shows the keyboard focus ring on the "Add photos" label */
+input[type="file"]:focus-visible + .photo-add,
+input[type="file"]:focus-visible + label.button {
+  outline: 2px solid var(--color-sage);
+  outline-offset: 3px;
+}
+
+label.button[aria-disabled="true"] {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.photo-count {
+  margin-left: 0.85rem;
+  font-size: 0.95rem;
+  color: var(--color-stone);
+}
+
+.upload-progress {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--color-sage);
+  background: var(--color-surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* The cover photo on a book's page */
+.cover-photo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 1.25rem 2rem;
+  align-items: start;
+}
+
+.cover-frame {
+  aspect-ratio: 4 / 5;
+  max-width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--color-linen);
+  box-shadow: var(--shadow-page);
+}
+
+.cover-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-empty {
+  padding: 1rem;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-style: italic;
+  color: var(--color-stone);
+}
+
+.cover-controls {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.cover-controls .actions {
+  margin-top: 0;
+}
+
+.cover-status:empty {
+  display: none;
+}
+
+/* Memory photos for the organiser */
+.gallery {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.gallery li {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.gallery-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--color-linen);
+  cursor: zoom-in;
+}
+
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.gallery-thumb:hover img {
+  transform: scale(1.03);
+}
+
+.gallery-caption {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.gallery-taken {
+  color: var(--color-stone);
+}
+
+/* The full-size photo viewer */
+.lightbox {
+  width: min(64rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-ivory);
+  color: var(--color-ink);
+}
+
+.lightbox::backdrop {
+  background: color-mix(in srgb, var(--color-ink) 75%, transparent);
+}
+
+.lightbox-inner {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.lightbox-image {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  background: var(--color-linen);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.lightbox-image img {
+  max-width: 100%;
+  max-height: min(70dvh, 48rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.lightbox-info {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lightbox-info .actions {
+  margin-top: 0;
+}
+
+.lightbox-caption {
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-style: italic;
+}
+
 .thank-you {
   display: grid;
   gap: 0.75rem;

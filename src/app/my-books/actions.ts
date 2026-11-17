@@ -14,6 +14,15 @@ import {
   limits,
   todayInUK,
 } from "@/lib/books";
+import { MAX_PHOTO_BYTES, allowedMimes, mimeToExtension, type PhotoMime } from "@/lib/photos";
+import {
+  createUploadPasses,
+  fileExists,
+  newPhotoPaths,
+  removeFiles,
+  signedDownloadUrl,
+} from "@/lib/photos-server";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type BookFields = {
@@ -202,12 +211,212 @@ export async function deleteBook(bookId: string) {
   }
 
   const supabase = await signedInClient();
+
+  // Note the photo files first (Row Level Security only shows this organiser's).
+  const [{ data: book }, { data: photos }] = await Promise.all([
+    supabase
+      .from("books")
+      .select("cover_original_path, cover_display_path, cover_thumb_path")
+      .eq("id", bookId)
+      .maybeSingle(),
+    supabase
+      .from("memory_photos")
+      .select("original_path, display_path, thumb_path")
+      .eq("book_id", bookId),
+  ]);
+
   const { error } = await supabase.from("books").delete().eq("id", bookId);
   if (error) {
     console.error("Delete book failed:", error.code, error.message);
     redirect(`/my-books/${bookId}?status=delete-failed`);
   }
 
+  // Then delete the photo files from the private photo store.
+  if (book) {
+    await removeFiles([
+      book.cover_original_path,
+      book.cover_display_path,
+      book.cover_thumb_path,
+      ...(photos ?? []).flatMap((p) => [p.original_path, p.display_path, p.thumb_path]),
+    ]);
+  }
+
   revalidatePath("/my-books");
   redirect("/my-books?status=deleted");
+}
+
+// ---------------------------------------------------------------------------
+// Cover photo
+// ---------------------------------------------------------------------------
+
+type UploadTarget = { path: string; token: string };
+export type CoverUpload =
+  | { ok: true; targets: { original: UploadTarget; display: UploadTarget; thumb: UploadTarget } }
+  | { ok: false; error: string };
+
+const coverProblem = "Sorry, the photo couldn't be saved just now. Please try again.";
+
+/** True if the signed-in organiser owns this book (checked by Row Level Security). */
+async function ownsBook(supabase: Awaited<ReturnType<typeof signedInClient>>, bookId: string) {
+  const { data } = await supabase.from("books").select("id").eq("id", bookId).maybeSingle();
+  return Boolean(data);
+}
+
+/** Step 1: one-time upload passes for a new cover photo. */
+export async function prepareCoverUpload(
+  bookId: string,
+  info: { mime: string; size: number },
+): Promise<CoverUpload> {
+  if (!isBookId(bookId)) return { ok: false, error: coverProblem };
+  if (!(allowedMimes as string[]).includes(info.mime) || !(info.size > 0 && info.size <= MAX_PHOTO_BYTES)) {
+    return { ok: false, error: "Please choose a JPG, PNG or iPhone (HEIC) photo up to 50 MB." };
+  }
+  if (!getAdminClient()) {
+    return { ok: false, error: "Photos can't be added just now. Please try again later." };
+  }
+  const supabase = await signedInClient();
+  if (!(await ownsBook(supabase, bookId))) return { ok: false, error: coverProblem };
+
+  try {
+    const paths = newPhotoPaths(`${bookId}/cover`, info.mime as PhotoMime);
+    return { ok: true, targets: await createUploadPasses(paths) };
+  } catch (e) {
+    console.error("Preparing cover upload failed:", e);
+    return { ok: false, error: coverProblem };
+  }
+}
+
+/** Step 2: after uploading, use the new photo as the cover (and delete the old one). */
+export async function saveCover(
+  bookId: string,
+  paths: { original: string; display: string; thumb: string },
+  size: { width: number; height: number },
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isBookId(bookId)) return { ok: false, error: coverProblem };
+
+  // The files must be in this book's cover folder, all for the same photo.
+  const folder = paths.original.slice(0, paths.original.lastIndexOf("/"));
+  const ext = paths.original.split(".").pop() ?? "";
+  const valid =
+    /^[0-9a-f-]{36}\/cover\/[0-9a-f-]{36}$/.test(folder) &&
+    folder.startsWith(`${bookId}/cover/`) &&
+    Object.values(mimeToExtension).includes(ext) &&
+    paths.display === `${folder}/display.jpg` &&
+    paths.thumb === `${folder}/thumb.jpg`;
+  if (!valid) return { ok: false, error: coverProblem };
+
+  const supabase = await signedInClient();
+  const { data: book } = await supabase
+    .from("books")
+    .select("cover_original_path, cover_display_path, cover_thumb_path")
+    .eq("id", bookId)
+    .maybeSingle();
+  if (!book) return { ok: false, error: coverProblem };
+
+  const arrived =
+    (await fileExists(paths.original)) &&
+    (await fileExists(paths.display)) &&
+    (await fileExists(paths.thumb));
+  if (!arrived) {
+    return { ok: false, error: "The photo didn't finish uploading. Please check your connection and try again." };
+  }
+
+  const { error } = await supabase
+    .from("books")
+    .update({
+      cover_original_path: paths.original,
+      cover_display_path: paths.display,
+      cover_thumb_path: paths.thumb,
+      cover_width: Math.round(size.width) || null,
+      cover_height: Math.round(size.height) || null,
+    })
+    .eq("id", bookId);
+  if (error) {
+    console.error("Save cover failed:", error.code, error.message);
+    await removeFiles([paths.original, paths.display, paths.thumb]);
+    return { ok: false, error: coverProblem };
+  }
+
+  await removeFiles([book.cover_original_path, book.cover_display_path, book.cover_thumb_path]);
+  revalidatePath(`/my-books/${bookId}`);
+  return { ok: true };
+}
+
+/** Removes the cover photo (and deletes its files). */
+export async function removeCover(bookId: string): Promise<{ ok: boolean; error?: string }> {
+  if (!isBookId(bookId)) return { ok: false, error: coverProblem };
+  const supabase = await signedInClient();
+  const { data: book } = await supabase
+    .from("books")
+    .select("cover_original_path, cover_display_path, cover_thumb_path")
+    .eq("id", bookId)
+    .maybeSingle();
+  if (!book) return { ok: false, error: coverProblem };
+
+  const { error } = await supabase
+    .from("books")
+    .update({
+      cover_original_path: null,
+      cover_display_path: null,
+      cover_thumb_path: null,
+      cover_width: null,
+      cover_height: null,
+    })
+    .eq("id", bookId);
+  if (error) {
+    console.error("Remove cover failed:", error.code, error.message);
+    return { ok: false, error: "Sorry, the photo couldn't be removed just now. Please try again." };
+  }
+
+  await removeFiles([book.cover_original_path, book.cover_display_path, book.cover_thumb_path]);
+  revalidatePath(`/my-books/${bookId}`);
+  return { ok: true };
+}
+
+/** Throws away a cover upload that didn't finish. */
+export async function abandonCoverUpload(bookId: string, paths: { original: string; display: string; thumb: string }) {
+  if (!isBookId(bookId)) return;
+  const supabase = await signedInClient();
+  if (!(await ownsBook(supabase, bookId))) return;
+  const inFolder = (p: string) => p.startsWith(`${bookId}/cover/`);
+  if (![paths.original, paths.display, paths.thumb].every(inFolder)) return;
+  // Never delete the photo that's currently the cover.
+  const { data: book } = await supabase.from("books").select("cover_original_path").eq("id", bookId).maybeSingle();
+  if (book?.cover_original_path === paths.original) return;
+  await removeFiles([paths.original, paths.display, paths.thumb]);
+}
+
+// ---------------------------------------------------------------------------
+// Downloading originals
+// ---------------------------------------------------------------------------
+
+/**
+ * A one-hour link to download a contributor's original, full-quality photo.
+ * Row Level Security makes sure it's a photo in one of this organiser's books.
+ */
+export async function getOriginalDownloadUrl(photoId: string): Promise<string | null> {
+  if (!isBookId(photoId)) return null;
+  const supabase = await signedInClient();
+  const { data: photo } = await supabase
+    .from("memory_photos")
+    .select("original_path, original_name, mime_type, position, memories(contributor_name)")
+    .eq("id", photoId)
+    .eq("uploaded", true)
+    .maybeSingle<{
+      original_path: string;
+      original_name: string | null;
+      mime_type: PhotoMime;
+      position: number;
+      memories: { contributor_name: string } | null;
+    }>();
+  if (!photo) return null;
+
+  const ext = mimeToExtension[photo.mime_type] ?? "jpg";
+  const contributor = (photo.memories?.contributor_name ?? "photo")
+    .replace(/[^A-Za-z0-9 -]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 40) || "photo";
+  const fileName = photo.original_name?.trim() || `${contributor}-${photo.position + 1}.${ext}`;
+  return signedDownloadUrl(photo.original_path, fileName);
 }
