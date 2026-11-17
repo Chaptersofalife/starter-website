@@ -266,3 +266,38 @@
   margin-top: 1.5rem;
   max-width: 44rem;
 }
+
+/* ---------- Ordering ---------- */
+
+.orderSection {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: clamp(1rem, 4vw, 1.4rem);
+  max-width: 44rem;
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius);
+  background: var(--color-linen);
+}
+
+.orderSection h2 {
+  font-size: clamp(1.4rem, 3vw, 1.7rem);
+}
+
+.orderSection :global(.actions) {
+  margin-top: 0;
+}
+
+.orderList {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.orderItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}

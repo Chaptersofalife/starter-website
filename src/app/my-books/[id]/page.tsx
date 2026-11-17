@@ -40,6 +40,7 @@ import type { GalleryPhoto } from "@/components/books/PhotoGallery";
 import { bookColumns, formatDate, isBookId, todayInUK, type Book } from "@/lib/books";
 import { daysLeftText, isOpen } from "@/lib/closing";
 import { invitePath } from "@/lib/invites";
+import { formatPounds, orderStatusLabels, paidStatuses, type OrderStatus } from "@/lib/orders";
 import { printWarning } from "@/lib/photos";
 import { signedViewUrls } from "@/lib/photos-server";
 import { createClient } from "@/lib/supabase/server";
@@ -120,7 +121,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) redirect("/login");
 
-  const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }, { data: invitations }] = await Promise.all([
+  const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }, { data: invitations }, { data: orders }] = await Promise.all([
     supabase
       .from("books")
       .select(`${bookColumns}, invite_token, cover_display_path, cover_width, cover_height`)
@@ -146,6 +147,13 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       .select("id, email, first_name, send_count, last_sent_at, reminders_stopped_at, created_at")
       .eq("book_id", id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("orders")
+      .select("id, status, total_copies, amount_pence, paid_at, created_at")
+      .eq("book_id", id)
+      .in("status", paidStatuses)
+      .order("created_at", { ascending: false })
+      .returns<{ id: string; status: OrderStatus; total_copies: number; amount_pence: number; paid_at: string | null; created_at: string }[]>(),
   ]);
   if (!book) notFound();
   if (memoriesError) console.error("Load memories failed:", memoriesError.code, memoriesError.message);
@@ -263,6 +271,39 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
           }}
         />
       </section>
+
+      {/* ---------- Ordering the book ---------- */}
+      {(!open || (orders && orders.length > 0)) && (
+        <section className={styles.orderSection} aria-labelledby="order-heading">
+          <h2 id="order-heading">Your book</h2>
+          {orders && orders.length > 0 && (
+            <ul className={styles.orderList}>
+              {orders.map((o) => (
+                <li key={o.id} className={styles.orderItem}>
+                  <span className={o.status === "refunded" ? "closed-label" : "open-label"}>{orderStatusLabels[o.status]}</span>
+                  <span>
+                    {o.total_copies} {o.total_copies === 1 ? "copy" : "copies"} · {formatPounds(o.amount_pence)} · ordered{" "}
+                    {formatDayUK(o.paid_at ?? o.created_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!open && (
+            <div className="actions">
+              <Link href={`/my-books/${book.id}/order`} className={orders && orders.length > 0 ? "button button-secondary" : "button"}>
+                {orders && orders.length > 0 ? "Order more copies" : "Order your book"}
+              </Link>
+            </div>
+          )}
+          {!open && (!orders || orders.length === 0) && (
+            <p className="muted">
+              When you&rsquo;ve chosen the memories to include, order your keepsake book. We&rsquo;ll send you a
+              preview to approve before anything is printed.
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ---------- Summary ---------- */}
       <section aria-labelledby="summary-heading" className={styles.summarySection}>
