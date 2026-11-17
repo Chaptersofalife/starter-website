@@ -4,6 +4,10 @@
 // person is an admin before doing anything.
 
 import { getAdmin } from "@/lib/admin";
+import { emailConfigured } from "@/lib/email";
+import { runReminders, sendTestEmails, type ReminderReport } from "@/lib/reminders";
+import { requestOrigin } from "@/lib/request-origin";
+import { siteUrl } from "@/lib/site";
 import { isBookId, lifeDates } from "@/lib/books";
 import { mimeToExtension, printWarning, type PhotoMime } from "@/lib/photos";
 import { signedDownloadUrl } from "@/lib/photos-server";
@@ -186,5 +190,36 @@ export async function getLayoutPackage(bookId: string): Promise<LayoutPackage | 
       timeStyle: "short",
       timeZone: "Europe/London",
     }).format(new Date()),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Reminder emails (admin testing)
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs the real daily reminder check now. It follows the same rules as the
+ * daily run, so it only emails people who are due a reminder today.
+ */
+export async function adminRunReminders(): Promise<ReminderReport | { error: string }> {
+  if (!(await getAdmin())) return { error: "Only admins can do this." };
+  if (!emailConfigured()) return { error: "RESEND_API_KEY is missing, so emails can't be sent." };
+  return runReminders(siteUrl);
+}
+
+/** Sends one sample of every email for a book to the admin only, marked [TEST]. */
+export async function adminSendTestEmails(bookId: string): Promise<{ ok: boolean; message: string }> {
+  const admin = await getAdmin();
+  if (!admin?.email) return { ok: false, message: "Only admins can do this." };
+  if (!isBookId(bookId)) return { ok: false, message: "We couldn't find this book." };
+  if (!emailConfigured()) return { ok: false, message: "RESEND_API_KEY is missing, so emails can't be sent." };
+  const result = await sendTestEmails(bookId, admin.email, await requestOrigin());
+  if (result.error && result.sent === 0) return { ok: false, message: result.error };
+  return {
+    ok: result.failed === 0,
+    message:
+      result.failed === 0
+        ? `Sent ${result.sent} test emails to ${admin.email}.`
+        : `Sent ${result.sent}, but ${result.failed} failed: ${result.error ?? "unknown problem"}`,
   };
 }

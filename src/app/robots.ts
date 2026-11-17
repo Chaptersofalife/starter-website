@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/my-books", "/contribute/", "/admin", "/auth/", "/reset-password"],
+      disallow: ["/my-books", "/contribute/", "/admin", "/auth/", "/reset-password", "/reminders/", "/api/"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl,

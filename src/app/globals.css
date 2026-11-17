@@ -917,6 +917,114 @@ label.button[aria-disabled="true"] {
   color: var(--color-stone);
 }
 
+/* ---------- Email invitations ---------- */
+
+.invitations {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.invitations h3 {
+  font-size: clamp(1.3rem, 3vw, 1.55rem);
+}
+
+.invite-result {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--color-sage);
+  background: var(--color-surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.invite-result p + p,
+.form-error p + p {
+  margin-top: 0.4rem;
+}
+
+.invited {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.invited h4 {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.invited-list {
+  list-style: none;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+/* Each invited person: details, status and actions; stacks on phones */
+.invited-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.invited-row + .invited-row {
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 560px) {
+  .invited-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .invited-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+.invited-who {
+  display: grid;
+  min-width: 0;
+}
+
+.invited-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.invited-email,
+.invited-meta {
+  font-size: 0.9rem;
+  color: var(--color-stone);
+  overflow-wrap: anywhere;
+}
+
+.invited-status {
+  display: grid;
+  justify-items: end;
+  gap: 0.15rem;
+}
+
+.invited-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1rem;
+}
+
+.invited-actions .link-button {
+  min-height: 40px;
+  font-size: 0.95rem;
+}
+
+.invited-note {
+  grid-column: 1 / -1;
+}
+
 /* ---------- Admin ---------- */
 
 .layout-download {

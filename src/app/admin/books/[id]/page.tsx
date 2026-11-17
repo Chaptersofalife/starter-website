@@ -5,8 +5,9 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { adminDownloadUrl, getLayoutPackage } from "@/app/admin/actions";
+import { adminDownloadUrl, adminSendTestEmails, getLayoutPackage } from "@/app/admin/actions";
 import LayoutDownload from "@/components/admin/LayoutDownload";
+import { TestEmailsButton } from "@/components/admin/ReminderControls";
 import PhotoGallery, { type GalleryPhoto } from "@/components/books/PhotoGallery";
 import { requireAdmin } from "@/lib/admin";
 import { formatDate, isBookId, todayInUK } from "@/lib/books";
@@ -190,6 +191,11 @@ async function AdminBook({ id }: { id: string }) {
       <section className={styles.panel} aria-labelledby="layout-heading">
         <h2 id="layout-heading">Download for layout</h2>
         <LayoutDownload getPackage={getLayoutPackage.bind(null, book.id)} />
+      </section>
+
+      <section className={styles.panel} aria-labelledby="emails-heading">
+        <h2 id="emails-heading">Test the emails</h2>
+        <TestEmailsButton send={adminSendTestEmails.bind(null, book.id)} />
       </section>
 
       {book.introduction && (
