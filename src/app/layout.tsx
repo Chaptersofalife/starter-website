@@ -5,12 +5,15 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import { Suspense } from "react";
 import SiteNav, { SiteNavLinks } from "@/components/SiteNav";
-import { businessName } from "@/lib/site";
+import { businessName, siteUrl } from "@/lib/site";
 import { browserBarColour, fontVariables } from "@/theme/fonts";
 import "@/theme/theme.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // The site's official address, used to build full links for search engines
+  // and social media previews.
+  metadataBase: new URL(siteUrl),
   // Each page's own title is shown first, e.g. "How it works · Chapters of a Life"
   title: {
     default: businessName,

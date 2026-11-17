@@ -6,6 +6,15 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# Send anyone using the old Netlify address to the real domain, keeping the
+# rest of the link (so old invite links still work). Previews have different
+# addresses (deploy-preview-…), so they aren't affected.
+[[redirects]]
+  from = "https://chaptersofalife-starter-website.netlify.app/*"
+  to = "https://www.chaptersofalife.co.uk/:splat"
+  status = 301
+  force = true
+
 # Turn on Netlify's Next.js support explicitly, so pages, logins and
 # server code are always set up correctly on every deploy.
 [[plugins]]
