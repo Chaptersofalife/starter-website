@@ -18,24 +18,50 @@ export default function SiteNav() {
   const pathname = usePathname();
   const [signedIn, setSignedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Bumped when the sign-in changes in this browser tab, to check again.
+  const [authChanges, setAuthChanges] = useState(0);
 
+  // Check again on every page change. Logging in or out moves to a new page
+  // without reloading, so the menu (which stays in place) must look again.
   useEffect(() => {
-    const supabase = createClient();
-    // Only used to choose which menu link to show. Private pages check
-    // properly on the server before showing anything.
-    const check = async (hasSession: boolean) => {
-      setSignedIn(hasSession);
-      if (!hasSession) {
-        setIsAdmin(false);
+    let current = true;
+    (async () => {
+      const supabase = createClient();
+      // A quick look in this browser first: visitors who aren't signed in
+      // don't need to ask the server anything.
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        if (current) {
+          setSignedIn(false);
+          setIsAdmin(false);
+        }
         return;
       }
-      const { data } = await supabase.rpc("is_admin");
-      setIsAdmin(data === true);
+      // Ask the server, which uses the same checks as the private pages.
+      try {
+        const response = await fetch("/api/me", { cache: "no-store" });
+        const status = (await response.json()) as { signedIn: boolean; isAdmin: boolean };
+        if (current) {
+          setSignedIn(status.signedIn);
+          setIsAdmin(status.isAdmin);
+        }
+      } catch {
+        if (current) setSignedIn(true); // keep "My books"; try again on the next page
+      }
+    })();
+    return () => {
+      current = false;
     };
-    supabase.auth.getSession().then(({ data }) => check(Boolean(data.session)));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Run after the sign-in change has finished, as Supabase recommends.
-      setTimeout(() => check(Boolean(session)), 0);
+  }, [pathname, authChanges]);
+
+  // Sign-in changes made in this tab (for example a session ending).
+  useEffect(() => {
+    const supabase = createClient();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        // Run after the sign-in change has finished, as Supabase recommends.
+        setTimeout(() => setAuthChanges((n) => n + 1), 0);
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
