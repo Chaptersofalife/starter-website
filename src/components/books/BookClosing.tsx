@@ -17,6 +17,8 @@ type BookClosingProps = {
   headline: string;
   /** A second line, e.g. "You closed this book early on 20 November 2026." */
   detail: string | null;
+  /** True once approved for printing: nothing can be changed. */
+  locked?: boolean;
   actions: {
     setDate: (closesOn: string) => Promise<ClosingResult>;
     closeNow: () => Promise<ClosingResult>;
@@ -24,7 +26,7 @@ type BookClosingProps = {
   };
 };
 
-export default function BookClosing({ open, closesOn, headline, detail, actions }: BookClosingProps) {
+export default function BookClosing({ open, closesOn, headline, detail, locked = false, actions }: BookClosingProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"view" | "change" | "confirm-close" | "reopen">("view");
@@ -58,7 +60,7 @@ export default function BookClosing({ open, closesOn, headline, detail, actions 
         </p>
       )}
 
-      {mode === "view" && (
+      {mode === "view" && !locked && (
         <div className="actions">
           {open ? (
             <>

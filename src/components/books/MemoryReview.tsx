@@ -29,6 +29,8 @@ export type ReviewMemory = {
 
 type MemoryReviewProps = {
   memory: ReviewMemory;
+  /** True once approved for printing: nothing can be changed. */
+  readOnly?: boolean;
   actions: {
     setStatus: (memoryId: string, status: MemoryStatus) => Promise<ReviewResult>;
     saveEdit: (
@@ -49,7 +51,7 @@ const statusLabels: Record<MemoryStatus, string> = {
   hidden: "Hidden",
 };
 
-export default function MemoryReview({ memory, actions }: MemoryReviewProps) {
+export default function MemoryReview({ memory, actions, readOnly = false }: MemoryReviewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -190,7 +192,7 @@ export default function MemoryReview({ memory, actions }: MemoryReviewProps) {
           photos={memory.photos}
           contributorName={memory.contributorName}
           getDownloadUrl={actions.getDownloadUrl}
-          onToggleHidden={(photoId, hidden) => run(() => actions.setPhotoHidden(photoId, hidden))}
+          onToggleHidden={readOnly ? undefined : (photoId, hidden) => run(() => actions.setPhotoHidden(photoId, hidden))}
           busy={pending}
         />
       )}
@@ -253,7 +255,7 @@ export default function MemoryReview({ memory, actions }: MemoryReviewProps) {
         </div>
       )}
 
-      {mode === "view" && (
+      {mode === "view" && !readOnly && (
         <div className="review-actions">
           <div className="review-decision" role="group" aria-label="Review decision">
             {memory.status !== "approved" && (

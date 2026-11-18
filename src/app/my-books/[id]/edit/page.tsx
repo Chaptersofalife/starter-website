@@ -41,6 +41,9 @@ async function EditBook({ id }: { id: string }) {
     .eq("id", id)
     .maybeSingle<Book>();
   if (!book) notFound();
+  // Once approved for printing, the details can't be changed.
+  const { data: lock } = await supabase.from("books").select("locked_at").eq("id", id).maybeSingle();
+  if (lock?.locked_at) redirect(`/my-books/${id}`);
 
   return (
     <>

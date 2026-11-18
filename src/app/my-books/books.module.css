@@ -301,3 +301,12 @@
   align-items: center;
   gap: 0.35rem 0.75rem;
 }
+
+.orderNext {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  color: var(--color-stone);
+}
