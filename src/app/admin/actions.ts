@@ -4,12 +4,14 @@
 // person is an admin before doing anything.
 
 import { getAdmin } from "@/lib/admin";
-import { emailConfigured } from "@/lib/email";
+import { emailConfigured, sendEmails } from "@/lib/email";
+import { dispatchedEmail, previewReadyEmail } from "@/lib/email-templates";
+import { lockBookForPrint, newPreviewPath, previewExists, previewUploadPass, signedPreviewUrl } from "@/lib/previews";
 import { runReminders, sendTestEmails, type ReminderReport } from "@/lib/reminders";
 import { requestOrigin } from "@/lib/request-origin";
-import { siteUrl } from "@/lib/site";
+import { contactEmail, siteUrl } from "@/lib/site";
 import { isBookId, lifeDates } from "@/lib/books";
-import { adminStatusChoices } from "@/lib/orders";
+import { MAX_PREVIEW_BYTES, addressLines, adminStatusChoices, previewableStatuses } from "@/lib/orders";
 import { mimeToExtension, printWarning, type PhotoMime } from "@/lib/photos";
 import { signedDownloadUrl } from "@/lib/photos-server";
 import { PHOTO_BUCKET, getAdminClient } from "@/lib/supabase/admin";
@@ -229,22 +231,159 @@ export async function adminSendTestEmails(bookId: string): Promise<{ ok: boolean
 // Orders (admin)
 // ---------------------------------------------------------------------------
 
-/** Changes an order's status (admins only). */
-export async function adminSetOrderStatus(orderId: string, status: string): Promise<{ ok: boolean; error?: string }> {
+/** Changes an order's status (admins only). Dispatched needs tracking details. */
+export async function adminSetOrderStatus(
+  orderId: string,
+  status: string,
+  tracking?: { number?: string; url?: string },
+): Promise<{ ok: boolean; error?: string }> {
   if (!(await getAdmin())) return { ok: false, error: "Only admins can do this." };
   if (!isBookId(orderId)) return { ok: false, error: "Order not found." };
   if (!(adminStatusChoices as string[]).includes(status)) return { ok: false, error: "Please choose a status." };
   const admin = getAdminClient();
   if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY is missing." };
 
+  const changes: Record<string, unknown> = { status, status_changed_at: new Date().toISOString() };
+  if (status === "dispatched") {
+    const number = (tracking?.number ?? "").trim();
+    const url = (tracking?.url ?? "").trim();
+    if (!number && !url) return { ok: false, error: "Please add a tracking number or a tracking link." };
+    if (number.length > 100) return { ok: false, error: "The tracking number is too long." };
+    if (url && (!/^https?:\/\/\S+$/.test(url) || url.length > 500)) {
+      return { ok: false, error: "Please check the tracking link (it should start with https://)." };
+    }
+    Object.assign(changes, { tracking_number: number || null, tracking_url: url || null, dispatched_at: new Date().toISOString() });
+  }
+  if (status === "approved") changes.approved_at = new Date().toISOString();
+
   // Only paid orders can move through the production steps.
   const { data, error } = await admin
     .from("orders")
-    .update({ status, status_changed_at: new Date().toISOString() })
+    .update(changes)
     .eq("id", orderId)
     .in("status", adminStatusChoices)
-    .select("id");
+    .select("*");
   if (error) return { ok: false, error: "Sorry, that didn't save. Please try again." };
-  if (!data || data.length === 0) return { ok: false, error: "Only paid orders can be updated." };
+  const order = data?.[0];
+  if (!order) return { ok: false, error: "Only paid orders can be updated." };
+
+  if (status === "approved" && order.book_id) await lockBookForPrint(order.book_id);
+  if (status === "dispatched") {
+    const name = await organiserFirstName(order.organiser_id, order.organiser_email);
+    const email = dispatchedEmail({
+      organiserFirstName: name,
+      bookName: order.book_name,
+      totalCopies: order.total_copies,
+      trackingNumber: order.tracking_number,
+      trackingUrl: order.tracking_url,
+      address: addressLines(order),
+    });
+    const sent = await sendEmails([{ to: order.organiser_email, ...email, replyTo: contactEmail }]);
+    if (sent.failed > 0) return { ok: true, error: "Saved, but the email to the organiser couldn't be sent." };
+  }
   return { ok: true };
+}
+
+async function organiserFirstName(organiserId: string | null, email: string) {
+  const admin = getAdminClient();
+  const { data } = organiserId && admin
+    ? await admin.from("profiles").select("full_name").eq("id", organiserId).maybeSingle()
+    : { data: null };
+  return ((data?.full_name || email.split("@")[0]).trim().split(/\s+/)[0]) || "there";
+}
+
+// ---------------------------------------------------------------------------
+// Preview PDFs (admin)
+// ---------------------------------------------------------------------------
+
+/** Step 1: a one-time pass to upload the next preview version. */
+export async function adminPreparePreviewUpload(
+  orderId: string,
+  info: { size: number; type: string },
+): Promise<{ ok: true; path: string; token: string; version: number } | { ok: false; error: string }> {
+  if (!(await getAdmin())) return { ok: false, error: "Only admins can do this." };
+  if (!isBookId(orderId)) return { ok: false, error: "Order not found." };
+  if (info.type !== "application/pdf") return { ok: false, error: "Please choose a PDF file." };
+  if (!(info.size > 0 && info.size <= MAX_PREVIEW_BYTES)) {
+    return { ok: false, error: "The PDF is too large. Previews can be up to 50 MB." };
+  }
+  const admin = getAdminClient();
+  if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY is missing." };
+
+  const { data: order } = await admin.from("orders").select("id, status").eq("id", orderId).maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (!(previewableStatuses as string[]).includes(order.status)) {
+    return { ok: false, error: "Previews can only be sent for paid orders that haven't been approved yet." };
+  }
+  const { data: latest } = await admin
+    .from("order_previews")
+    .select("version")
+    .eq("order_id", orderId)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const version = (latest?.version ?? 0) + 1;
+  try {
+    const pass = await previewUploadPass(newPreviewPath(orderId, version));
+    return { ok: true, ...pass, version };
+  } catch {
+    return { ok: false, error: "Couldn't prepare the upload. Has the database update been run?" };
+  }
+}
+
+/** Step 2: after uploading, record the version, mark "Preview sent" and email the organiser. */
+export async function adminPublishPreview(
+  orderId: string,
+  upload: { path: string; version: number; fileName: string; size: number },
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  if (!(await getAdmin())) return { ok: false, error: "Only admins can do this." };
+  if (!isBookId(orderId)) return { ok: false, error: "Order not found." };
+  const expected = new RegExp(`^${orderId}/v${upload.version}-[0-9a-f-]{36}\\.pdf$`);
+  if (!expected.test(upload.path)) return { ok: false, error: "That upload doesn't belong to this order." };
+  if (!(await previewExists(upload.path))) return { ok: false, error: "The PDF didn't finish uploading. Please try again." };
+  const admin = getAdminClient();
+  if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY is missing." };
+
+  const { error: insertError } = await admin.from("order_previews").insert({
+    order_id: orderId,
+    version: upload.version,
+    file_path: upload.path,
+    file_name: upload.fileName.slice(0, 200) || null,
+    size_bytes: upload.size,
+  });
+  if (insertError) return { ok: false, error: "Couldn't save the preview. Please try again." };
+
+  const { data } = await admin
+    .from("orders")
+    .update({ status: "preview_sent", status_changed_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .in("status", previewableStatuses)
+    .select("*");
+  const order = data?.[0];
+  if (!order) return { ok: false, error: "The order can no longer receive previews." };
+
+  const name = await organiserFirstName(order.organiser_id, order.organiser_email);
+  const email = previewReadyEmail({
+    organiserFirstName: name,
+    bookName: order.book_name,
+    version: upload.version,
+    previewUrl: order.book_id ? `${siteUrl}/my-books/${order.book_id}/preview` : `${siteUrl}/my-books`,
+  });
+  const sent = await sendEmails([{ to: order.organiser_email, ...email, replyTo: contactEmail }]);
+  return {
+    ok: true,
+    message:
+      sent.failed > 0
+        ? `Version ${upload.version} uploaded and marked "Preview sent", but the email couldn't be sent.`
+        : `Version ${upload.version} uploaded. ${order.organiser_email} has been emailed.`,
+  };
+}
+
+/** A one-hour link to view any preview version (admins only). */
+export async function adminPreviewUrl(previewId: string): Promise<string | null> {
+  if (!(await getAdmin()) || !isBookId(previewId)) return null;
+  const admin = getAdminClient();
+  if (!admin) return null;
+  const { data } = await admin.from("order_previews").select("file_path").eq("id", previewId).maybeSingle();
+  return data ? signedPreviewUrl(data.file_path) : null;
 }

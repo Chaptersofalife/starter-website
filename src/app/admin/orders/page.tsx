@@ -3,11 +3,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { adminSetOrderStatus } from "@/app/admin/actions";
+import { adminPreparePreviewUpload, adminPublishPreview, adminSetOrderStatus } from "@/app/admin/actions";
 import OrderStatusSelect from "@/components/admin/OrderStatusSelect";
+import PreviewUpload from "@/components/admin/PreviewUpload";
 import { requireAdmin } from "@/lib/admin";
 import { orderReference } from "@/lib/order-payments";
-import { addressLines, formatPounds, paidStatuses, type OrderStatus } from "@/lib/orders";
+import { addressLines, formatPounds, paidStatuses, previewableStatuses, type OrderStatus } from "@/lib/orders";
+import { signedPreviewUrl } from "@/lib/previews";
 import { stripeTestMode } from "@/lib/stripe";
 import { getAdminClient } from "@/lib/supabase/admin";
 import styles from "../admin.module.css";
@@ -35,6 +37,20 @@ type Order = {
   status: OrderStatus;
   paid_at: string | null;
   created_at: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
+};
+
+type PreviewRow = {
+  id: string;
+  order_id: string;
+  version: number;
+  file_path: string;
+  file_name: string | null;
+  uploaded_at: string;
+  response: string | null;
+  response_message: string | null;
+  responded_at: string | null;
 };
 
 export default function AdminOrdersPage({ searchParams }: PageProps<"/admin/orders">) {
@@ -63,6 +79,20 @@ async function Orders({ showAll }: { showAll: boolean }) {
   if (!showAll) query = query.in("status", paidStatuses);
   const { data, error } = await query.returns<Order[]>();
   const orders = data ?? [];
+  // Every preview version, newest first, with a one-hour viewing link.
+  const { data: previewRows } = orders.length
+    ? await admin
+        .from("order_previews")
+        .select("id, order_id, version, file_path, file_name, uploaded_at, response, response_message, responded_at")
+        .in("order_id", orders.map((o) => o.id))
+        .order("version", { ascending: false })
+        .returns<PreviewRow[]>()
+    : { data: [] as PreviewRow[] };
+  const previews = await Promise.all(
+    (previewRows ?? []).map(async (p) => ({ ...p, url: await signedPreviewUrl(p.file_path) })),
+  );
+  const previewsFor = (orderId: string) => previews.filter((p) => p.order_id === orderId);
+
   const paidTotal = orders.filter((o) => paidStatuses.includes(o.status) && o.status !== "refunded").reduce((n, o) => n + o.amount_pence, 0);
 
   return (
@@ -108,7 +138,13 @@ async function Orders({ showAll }: { showAll: boolean }) {
                     <a href={`mailto:${o.organiser_email}`}>{o.organiser_email}</a>
                   </p>
                 </div>
-                <OrderStatusSelect orderId={o.id} status={o.status} setStatus={adminSetOrderStatus} />
+                <OrderStatusSelect
+                  orderId={o.id}
+                  status={o.status}
+                  trackingNumber={o.tracking_number}
+                  trackingUrl={o.tracking_url}
+                  setStatus={adminSetOrderStatus}
+                />
               </header>
               <dl className={styles.facts}>
                 <div>
@@ -129,7 +165,65 @@ async function Orders({ showAll }: { showAll: boolean }) {
                     {o.phone && <span className="address-line">Phone: {o.phone}</span>}
                   </dd>
                 </div>
+                {(o.tracking_number || o.tracking_url) && (
+                  <div>
+                    <dt>Tracking</dt>
+                    <dd>
+                      {o.tracking_number}
+                      {o.tracking_url && (
+                        <>
+                          {o.tracking_number ? " · " : ""}
+                          <a href={o.tracking_url} target="_blank" rel="noopener noreferrer">
+                            Tracking link
+                          </a>
+                        </>
+                      )}
+                    </dd>
+                  </div>
+                )}
               </dl>
+
+              {paidStatuses.includes(o.status) && (
+                <div className="order-previews">
+                  <p className="review-sayings-label">Previews</p>
+                  {previewsFor(o.id).length === 0 ? (
+                    <p className="muted">No preview sent yet.</p>
+                  ) : (
+                    <ul className="preview-versions">
+                      {previewsFor(o.id).map((p) => (
+                        <li key={p.id}>
+                          <span>
+                            <strong>Version {p.version}</strong> · sent {formatDay(p.uploaded_at)}
+                            {p.url && (
+                              <>
+                                {" · "}
+                                <a href={p.url} target="_blank" rel="noopener noreferrer">
+                                  View PDF
+                                </a>
+                              </>
+                            )}
+                          </span>
+                          {p.response === "approved" && <span className="open-label">Approved {p.responded_at ? formatDay(p.responded_at) : ""}</span>}
+                          {p.response === "changes_requested" && (
+                            <span className="preview-changes">
+                              <span className="closed-label">Changes requested</span>
+                              {p.response_message && <span className="review-text">{p.response_message}</span>}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {previewableStatuses.includes(o.status) && (
+                    <PreviewUpload
+                      orderId={o.id}
+                      nextVersion={(previewsFor(o.id)[0]?.version ?? 0) + 1}
+                      prepare={adminPreparePreviewUpload.bind(null, o.id)}
+                      publish={adminPublishPreview.bind(null, o.id)}
+                    />
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ol>

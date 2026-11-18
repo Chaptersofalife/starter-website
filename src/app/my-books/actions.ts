@@ -269,8 +269,9 @@ const coverProblem = "Sorry, the photo couldn't be saved just now. Please try ag
 
 /** True if the signed-in organiser owns this book (checked by Row Level Security). */
 async function ownsBook(supabase: Awaited<ReturnType<typeof signedInClient>>, bookId: string) {
-  const { data } = await supabase.from("books").select("id").eq("id", bookId).maybeSingle();
-  return Boolean(data);
+  // Also false once the book is approved for printing (locked).
+  const { data } = await supabase.from("books").select("id, locked_at").eq("id", bookId).maybeSingle();
+  return Boolean(data && !data.locked_at);
 }
 
 /** Step 1: one-time upload passes for a new cover photo. */
@@ -320,6 +321,7 @@ export async function saveCover(
   const { data: book } = await supabase
     .from("books")
     .select("cover_original_path, cover_display_path, cover_thumb_path")
+    .is("locked_at", null) // not once approved for printing
     .eq("id", bookId)
     .maybeSingle();
   if (!book) return { ok: false, error: coverProblem };
@@ -360,6 +362,7 @@ export async function removeCover(bookId: string): Promise<{ ok: boolean; error?
   const { data: book } = await supabase
     .from("books")
     .select("cover_original_path, cover_display_path, cover_thumb_path")
+    .is("locked_at", null) // not once approved for printing
     .eq("id", bookId)
     .maybeSingle();
   if (!book) return { ok: false, error: coverProblem };

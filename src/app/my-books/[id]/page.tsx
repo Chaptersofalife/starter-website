@@ -82,6 +82,7 @@ type MemoryPhoto = {
 
 type BookWithExtras = Book & {
   invite_token: string;
+  locked_at: string | null;
   cover_display_path: string | null;
   cover_width: number | null;
   cover_height: number | null;
@@ -124,7 +125,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
   const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }, { data: invitations }, { data: orders }] = await Promise.all([
     supabase
       .from("books")
-      .select(`${bookColumns}, invite_token, cover_display_path, cover_width, cover_height`)
+      .select(`${bookColumns}, invite_token, locked_at, cover_display_path, cover_width, cover_height`)
       .eq("id", id)
       .maybeSingle<BookWithExtras>(),
     supabase
@@ -149,17 +150,30 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       .order("created_at", { ascending: false }),
     supabase
       .from("orders")
-      .select("id, status, total_copies, amount_pence, paid_at, created_at")
+      .select("id, status, total_copies, amount_pence, paid_at, created_at, tracking_number, tracking_url")
       .eq("book_id", id)
       .in("status", paidStatuses)
       .order("created_at", { ascending: false })
-      .returns<{ id: string; status: OrderStatus; total_copies: number; amount_pence: number; paid_at: string | null; created_at: string }[]>(),
+      .returns<
+        {
+          id: string;
+          status: OrderStatus;
+          total_copies: number;
+          amount_pence: number;
+          paid_at: string | null;
+          created_at: string;
+          tracking_number: string | null;
+          tracking_url: string | null;
+        }[]
+      >(),
   ]);
   if (!book) notFound();
   if (memoriesError) console.error("Load memories failed:", memoriesError.code, memoriesError.message);
 
   const inviteUrl = `${await siteOrigin()}${invitePath(book.invite_token)}`;
   const personName = book.known_as || book.full_name.split(/\s+/)[0];
+  // Once a preview is approved, the book can't be changed (the database enforces this).
+  const locked = Boolean(book.locked_at);
 
   // Is the book still welcoming memories?
   const today = todayInUK();
@@ -257,6 +271,12 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
         <hr className="ornament" />
       </header>
 
+      {locked && (
+        <p className={styles.notice} role="status">
+          This book has been approved for printing, so it can no longer be changed.
+        </p>
+      )}
+
       {/* ---------- Closing date ---------- */}
       <section aria-label="Closing date" className={styles.closingSection}>
         <BookClosing
@@ -264,6 +284,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
           closesOn={book.closes_on}
           headline={closingHeadline}
           detail={closingDetail}
+          locked={locked}
           actions={{
             setDate: setClosingDate.bind(null, book.id),
             closeNow: closeBookNow.bind(null, book.id),
@@ -285,11 +306,41 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
                     {o.total_copies} {o.total_copies === 1 ? "copy" : "copies"} · {formatPounds(o.amount_pence)} · ordered{" "}
                     {formatDayUK(o.paid_at ?? o.created_at)}
                   </span>
+                  {o.status === "preview_sent" && (
+                    <span className={styles.orderNext}>
+                      Your preview is ready to look through.{" "}
+                      <Link href={`/my-books/${book.id}/preview`} className="button">
+                        View your preview
+                      </Link>
+                    </span>
+                  )}
+                  {o.status === "changes_requested" && (
+                    <span className={styles.orderNext}>
+                      Thank you. We&rsquo;re making your changes and will email you the updated preview.{" "}
+                      <Link href={`/my-books/${book.id}/preview`}>See the preview</Link>
+                    </span>
+                  )}
+                  {(o.status === "approved" || o.status === "sent_to_printer") && (
+                    <span className={styles.orderNext}>
+                      Thank you for approving your book. We&rsquo;ll email you when it&rsquo;s on its way.{" "}
+                      <Link href={`/my-books/${book.id}/preview`}>See the approved preview</Link>
+                    </span>
+                  )}
+                  {(o.status === "dispatched" || o.status === "delivered") && (o.tracking_number || o.tracking_url) && (
+                    <span className={styles.orderNext}>
+                      {o.tracking_number && <>Tracking number: <strong>{o.tracking_number}</strong> </>}
+                      {o.tracking_url && (
+                        <a href={o.tracking_url} target="_blank" rel="noopener noreferrer">
+                          Track delivery
+                        </a>
+                      )}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          {!open && (
+          {!open && !locked && (
             <div className="actions">
               <Link href={`/my-books/${book.id}/order`} className={orders && orders.length > 0 ? "button button-secondary" : "button"}>
                 {orders && orders.length > 0 ? "Order more copies" : "Order your book"}
@@ -395,7 +446,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
                 };
                 return (
                   <li key={m.id}>
-                    <MemoryReview memory={memory} actions={reviewActions} />
+                    <MemoryReview memory={memory} actions={reviewActions} readOnly={locked} />
                   </li>
                 );
               })}
@@ -433,6 +484,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
         <InviteLink url={inviteUrl} createNewLink={createNewInviteLink.bind(null, book.id)} />
         <InvitationsPanel
           open={open}
+          readOnly={locked}
           people={invitedPeople}
           actions={{
             send: sendInvitations.bind(null, book.id),
@@ -453,6 +505,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
           save={saveCover.bind(null, book.id)}
           remove={removeCover.bind(null, book.id)}
           abandon={abandonCoverUpload.bind(null, book.id)}
+          readOnly={locked}
         />
       </section>
 
@@ -485,12 +538,14 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
             </p>
           )}
         </div>
-        <div className={styles.bookActions}>
-          <Link href={`/my-books/${book.id}/edit`} className="button">
-            Edit details
-          </Link>
-          <DeleteBook action={deleteBook.bind(null, book.id)} bookName={book.full_name} />
-        </div>
+        {!locked && (
+          <div className={styles.bookActions}>
+            <Link href={`/my-books/${book.id}/edit`} className="button">
+              Edit details
+            </Link>
+            <DeleteBook action={deleteBook.bind(null, book.id)} bookName={book.full_name} />
+          </div>
+        )}
       </section>
     </article>
   );

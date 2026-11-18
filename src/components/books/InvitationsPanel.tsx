@@ -21,6 +21,8 @@ export type InvitedPerson = {
 
 type InvitationsPanelProps = {
   open: boolean;
+  /** True once approved for printing: the list can't be changed. */
+  readOnly?: boolean;
   people: InvitedPerson[];
   actions: {
     send: (list: string, message: string) => Promise<InviteResult>;
@@ -29,7 +31,7 @@ type InvitationsPanelProps = {
   };
 };
 
-export default function InvitationsPanel({ open, people, actions }: InvitationsPanelProps) {
+export default function InvitationsPanel({ open, readOnly = false, people, actions }: InvitationsPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [list, setList] = useState("");
@@ -69,7 +71,7 @@ export default function InvitationsPanel({ open, people, actions }: InvitationsP
   return (
     <div className="invitations">
       <h3>Invite by email</h3>
-      {!open ? (
+      {readOnly ? null : !open ? (
         <p className="muted">The book is closed. Reopen it to send more invitations.</p>
       ) : (
         <form onSubmit={send} className="form">
@@ -170,7 +172,7 @@ export default function InvitationsPanel({ open, people, actions }: InvitationsP
                   )}
                   {p.remindersStopped && <span className="invited-meta">Reminders stopped</span>}
                 </div>
-                <div className="invited-actions">
+                <div className="invited-actions" hidden={readOnly}>
                   {confirmRemove === p.id ? (
                     <>
                       <span className="invited-meta">Remove {p.firstName ?? p.email}?</span>

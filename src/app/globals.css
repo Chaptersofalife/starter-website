@@ -1182,6 +1182,104 @@ label.button[aria-disabled="true"] {
   display: block;
 }
 
+.tracking-fields {
+  display: grid;
+  gap: 0.5rem;
+  flex-basis: 100%;
+}
+
+.tracking-fields label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tracking-fields input {
+  min-height: 44px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.order-previews {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.preview-versions {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.preview-versions li {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.preview-changes {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-gold);
+}
+
+.preview-upload {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+/* ---------- The organiser's preview page ---------- */
+
+.preview-viewer {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.preview-viewer .actions {
+  margin-top: 0;
+}
+
+/* The PDF shown on the page (computers); phones use "Open the preview" */
+.preview-frame {
+  width: 100%;
+  height: min(85dvh, 60rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-linen);
+}
+
+@media (max-width: 700px) {
+  .preview-frame {
+    display: none;
+  }
+}
+
+.preview-status {
+  margin-top: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-left: 3px solid var(--color-sage);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--color-linen);
+}
+
+.preview-response {
+  display: grid;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
 .layout-download {
   display: grid;
   gap: 0.6rem;

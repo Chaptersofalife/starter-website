@@ -347,3 +347,130 @@ export function newOrderAdminEmail(
   ].join("\n");
   return { subject, html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Previews, approval and dispatch
+// ---------------------------------------------------------------------------
+
+export function previewReadyEmail(d: {
+  organiserFirstName: string;
+  bookName: string;
+  version: number;
+  previewUrl: string;
+}): Email {
+  const revised = d.version > 1;
+  const subject = revised
+    ? `Your updated preview of ${d.bookName}'s book is ready`
+    : `Your preview of ${d.bookName}'s book is ready`;
+  const html = layout(
+    subject,
+    [
+      h1(revised ? "Your updated preview is ready" : "Your preview is ready"),
+      p(`Dear ${esc(d.organiserFirstName)},`),
+      p(
+        revised
+          ? `Thank you for your thoughts. We&rsquo;ve made the changes, and an updated preview of ${esc(d.bookName)}&rsquo;s book is ready for you to look through.`
+          : `We&rsquo;ve finished designing ${esc(d.bookName)}&rsquo;s book, and your preview is ready to look through.`,
+      ),
+      p("Please take your time. Check names, dates, spellings and photographs, and see how it feels to read."),
+      p("When you&rsquo;re happy, choose <strong>Approve and print</strong>. If anything needs changing, choose <strong>Request changes</strong> and tell us what you&rsquo;d like. Nothing is printed until you approve it."),
+      button(d.previewUrl, "View your preview"),
+    ].join(""),
+    `You&rsquo;ll need to log in to view the preview. ${esc(signOff)}`,
+  );
+  const text = [
+    `Dear ${d.organiserFirstName},`,
+    "",
+    revised
+      ? `Thank you for your thoughts. We've made the changes, and an updated preview of ${d.bookName}'s book is ready for you to look through.`
+      : `We've finished designing ${d.bookName}'s book, and your preview is ready to look through.`,
+    "",
+    "Please take your time. Check names, dates, spellings and photographs, and see how it feels to read.",
+    "",
+    "When you're happy, choose Approve and print. If anything needs changing, choose Request changes and tell us what you'd like. Nothing is printed until you approve it.",
+    "",
+    `View your preview: ${d.previewUrl}`,
+    "(You'll need to log in.)",
+    signOff,
+  ].join("\n");
+  return { subject, html, text };
+}
+
+export function previewResponseAdminEmail(d: {
+  approved: boolean;
+  orderRef: string;
+  bookName: string;
+  organiserName: string;
+  organiserEmail: string;
+  version: number;
+  message: string | null;
+  adminUrl: string;
+}): Email {
+  const subject = d.approved
+    ? `Approved for print: ${d.bookName} (${d.orderRef})`
+    : `Changes requested: ${d.bookName} (${d.orderRef})`;
+  const html = layout(
+    subject,
+    [
+      h1(d.approved ? "Preview approved" : "Changes requested"),
+      p(
+        `${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.sage};">${esc(d.organiserEmail)}</a>) has ${
+          d.approved ? "approved" : "asked for changes to"
+        } preview version ${d.version} of <strong>${esc(d.bookName)}</strong> (${esc(d.orderRef)}).`,
+      ),
+      d.message ? quote(d.message) : "",
+      p(d.approved ? "The book is now locked, and ready to send to the printer." : "Upload a new version from the admin area when it&rsquo;s ready."),
+      button(d.adminUrl, "Open orders"),
+    ].join(""),
+    esc(signOff),
+  );
+  const text = [
+    `${d.organiserName} (${d.organiserEmail}) has ${d.approved ? "approved" : "asked for changes to"} preview version ${d.version} of ${d.bookName} (${d.orderRef}).`,
+    ...(d.message ? ["", d.message] : []),
+    "",
+    d.approved ? "The book is now locked, and ready to send to the printer." : "Upload a new version from the admin area when it's ready.",
+    `Open orders: ${d.adminUrl}`,
+  ].join("\n");
+  return { subject, html, text };
+}
+
+export function dispatchedEmail(d: {
+  organiserFirstName: string;
+  bookName: string;
+  totalCopies: number;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  address: string[];
+}): Email {
+  const books = d.totalCopies > 1 ? `your ${d.totalCopies} copies of ${d.bookName}'s book are` : `${d.bookName}'s book is`;
+  const subject = `${d.bookName}'s book is on its way`;
+  // The tracking link has its own button below, so only the number goes here.
+  const tracking = d.trackingNumber ? `Tracking number: <strong>${esc(d.trackingNumber)}</strong>` : "";
+  const html = layout(
+    subject,
+    [
+      h1("Your book is on its way"),
+      p(`Dear ${esc(d.organiserFirstName)},`),
+      p(`We&rsquo;re pleased to let you know that ${esc(books)} on the way to you.`),
+      tracking ? p(tracking) : "",
+      d.trackingUrl ? button(d.trackingUrl, "Track your delivery") : "",
+      p(`Delivering to:<br>${d.address.map(esc).join("<br>")}`),
+      p("We hope it becomes a treasured keepsake for your family. Thank you for letting us be part of remembering them."),
+    ].join(""),
+    esc(signOff),
+  );
+  const text = [
+    `Dear ${d.organiserFirstName},`,
+    "",
+    `We're pleased to let you know that ${books} on the way to you.`,
+    ...(d.trackingNumber ? ["", `Tracking number: ${d.trackingNumber}`] : []),
+    ...(d.trackingUrl ? [`Track your delivery: ${d.trackingUrl}`] : []),
+    "",
+    "Delivering to:",
+    ...d.address.map((l) => `  ${l}`),
+    "",
+    "We hope it becomes a treasured keepsake for your family. Thank you for letting us be part of remembering them.",
+    signOff,
+  ].join("\n");
+  return { subject, html, text };
+}

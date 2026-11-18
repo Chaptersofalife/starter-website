@@ -25,6 +25,7 @@ export type OrderStatus =
   | "expired"
   | "paid"
   | "preview_sent"
+  | "changes_requested"
   | "approved"
   | "sent_to_printer"
   | "dispatched"
@@ -38,6 +39,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   expired: "Not paid",
   paid: "Paid – being designed",
   preview_sent: "Preview sent",
+  changes_requested: "Changes requested",
   approved: "Approved",
   sent_to_printer: "Sent to printer",
   dispatched: "Dispatched",
@@ -49,6 +51,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
 export const adminStatusChoices: OrderStatus[] = [
   "paid",
   "preview_sent",
+  "changes_requested",
   "approved",
   "sent_to_printer",
   "dispatched",
@@ -81,3 +84,12 @@ export function addressLines(o: Partial<Record<keyof DeliveryAddress, string | n
     (line): line is string => Boolean(line && line.trim()),
   );
 }
+
+/** Orders whose preview can be replaced with a new version. */
+export const previewableStatuses: OrderStatus[] = ["paid", "preview_sent", "changes_requested"];
+
+/** The private bucket for preview PDFs. */
+export const PREVIEW_BUCKET = "book-previews";
+/** Largest preview PDF accepted (Supabase's free plan allows up to 50 MB per file). */
+export const MAX_PREVIEW_BYTES = 50 * 1024 * 1024;
+export const CHANGES_MESSAGE_MAX = 2000;

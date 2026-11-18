@@ -21,6 +21,8 @@ type CoverPhotoProps = {
   save: (paths: Paths, size: { width: number; height: number }) => Promise<{ ok: boolean; error?: string }>;
   remove: () => Promise<{ ok: boolean; error?: string }>;
   abandon: (paths: Paths) => Promise<void>;
+  /** True once approved for printing: the cover can't be changed. */
+  readOnly?: boolean;
 };
 
 export default function CoverPhoto({
@@ -31,6 +33,7 @@ export default function CoverPhoto({
   save,
   remove,
   abandon,
+  readOnly = false,
 }: CoverPhotoProps) {
   const router = useRouter();
   const [busy, setBusy] = useState<"" | "preparing" | "uploading" | "removing">("");
@@ -95,6 +98,7 @@ export default function CoverPhoto({
         )}
       </div>
 
+      {readOnly ? null : (
       <div className="cover-controls">
         {warning && <p className="photo-warning">{warning}</p>}
 
@@ -165,6 +169,7 @@ export default function CoverPhoto({
           JPG, PNG or iPhone photos. We keep the original at full quality for printing.
         </p>
       </div>
+      )}
     </div>
   );
 }
