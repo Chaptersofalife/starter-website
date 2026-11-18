@@ -82,6 +82,11 @@ async function AdminHome({ q }: { q: string }) {
       <header className={styles.header}>
         <p className={styles.eyebrow}>Admin</p>
         <h1>All books</h1>
+        <p>
+          <Link href="/admin/orders" className="button button-secondary">
+            Orders
+          </Link>
+        </p>
       </header>
 
       {error && (

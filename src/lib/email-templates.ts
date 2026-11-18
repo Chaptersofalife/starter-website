@@ -239,3 +239,111 @@ export function organiserClosedEmail(d: OrganiserDetails & { waiting: number }):
   ].join("\n");
   return { subject, html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+type OrderEmailDetails = {
+  orderRef: string;
+  bookName: string;
+  totalCopies: number;
+  extraCopies: number;
+  amount: string;
+  address: string[];
+  paidOn: string;
+};
+
+function orderTable(d: OrderEmailDetails) {
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 12px 6px 0;color:${c.stone};vertical-align:top;white-space:nowrap;">${esc(label)}</td><td style="padding:6px 0;vertical-align:top;">${value}</td></tr>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;font-size:15px;line-height:1.5;">${[
+    row("Order", esc(d.orderRef)),
+    row("Book", `Keepsake book for ${esc(d.bookName)}`),
+    row("Copies", `${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`),
+    row("Paid", `${esc(d.amount)} on ${esc(d.paidOn)}`),
+    row("Delivering to", d.address.map(esc).join("<br>")),
+  ].join("")}</table>`;
+}
+
+function orderText(d: OrderEmailDetails) {
+  return [
+    `Order: ${d.orderRef}`,
+    `Book: Keepsake book for ${d.bookName}`,
+    `Copies: ${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`,
+    `Paid: ${d.amount} on ${d.paidOn}`,
+    "Delivering to:",
+    ...d.address.map((l) => `  ${l}`),
+  ].join("\n");
+}
+
+export function orderConfirmationEmail(
+  d: OrderEmailDetails & { organiserFirstName: string; previewDays: number; bookUrl: string },
+): Email {
+  const subject = `Thank you for your order: ${d.bookName}'s book`;
+  const html = layout(
+    subject,
+    [
+      h1("Thank you for your order"),
+      p(`Dear ${esc(d.organiserFirstName)},`),
+      p(
+        `Thank you for trusting us with ${esc(d.bookName)}&rsquo;s book. We&rsquo;ve received your payment, and we&rsquo;ll now begin designing the pages with care.`,
+      ),
+      orderTable(d),
+      `<h2 style="margin:24px 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:normal;color:${c.ink};">What happens next</h2>`,
+      `<ol style="margin:0 0 16px;padding-left:20px;">
+        <li style="margin-bottom:6px;">We design your book using the memories and photographs you approved.</li>
+        <li style="margin-bottom:6px;">Within ${d.previewDays} working days, we&rsquo;ll send you a preview to look through.</li>
+        <li style="margin-bottom:6px;">Nothing is printed until you approve it.</li>
+        <li>Your book is printed, bound and delivered to your door.</li>
+      </ol>`,
+      p("If you have any questions, simply reply to this email."),
+      button(d.bookUrl, "View your book"),
+    ].join(""),
+    esc(signOff),
+  );
+  const text = [
+    `Dear ${d.organiserFirstName},`,
+    "",
+    `Thank you for trusting us with ${d.bookName}'s book. We've received your payment, and we'll now begin designing the pages with care.`,
+    "",
+    orderText(d),
+    "",
+    "What happens next:",
+    "1. We design your book using the memories and photographs you approved.",
+    `2. Within ${d.previewDays} working days, we'll send you a preview to look through.`,
+    "3. Nothing is printed until you approve it.",
+    "4. Your book is printed, bound and delivered to your door.",
+    "",
+    "If you have any questions, simply reply to this email.",
+    `View your book: ${d.bookUrl}`,
+    signOff,
+  ].join("\n");
+  return { subject, html, text };
+}
+
+export function newOrderAdminEmail(
+  d: OrderEmailDetails & { organiserName: string; organiserEmail: string; adminUrl: string; testMode: boolean },
+): Email {
+  const subject = `${d.testMode ? "[TEST] " : ""}New order: ${d.bookName} (${d.amount})`;
+  const html = layout(
+    subject,
+    [
+      h1("New order"),
+      d.testMode ? p(`<strong>Test mode:</strong> no real money was taken.`) : "",
+      p(`From ${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.sage};">${esc(d.organiserEmail)}</a>).`),
+      orderTable(d),
+      button(d.adminUrl, "Open in admin"),
+    ].join(""),
+    esc(signOff),
+  );
+  const text = [
+    d.testMode ? "TEST MODE: no real money was taken.\n" : "",
+    `From ${d.organiserName} (${d.organiserEmail})`,
+    "",
+    orderText(d),
+    "",
+    `Open in admin: ${d.adminUrl}`,
+  ].join("\n");
+  return { subject, html, text };
+}

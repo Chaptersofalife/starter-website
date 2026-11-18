@@ -9,6 +9,7 @@ import { runReminders, sendTestEmails, type ReminderReport } from "@/lib/reminde
 import { requestOrigin } from "@/lib/request-origin";
 import { siteUrl } from "@/lib/site";
 import { isBookId, lifeDates } from "@/lib/books";
+import { adminStatusChoices } from "@/lib/orders";
 import { mimeToExtension, printWarning, type PhotoMime } from "@/lib/photos";
 import { signedDownloadUrl } from "@/lib/photos-server";
 import { PHOTO_BUCKET, getAdminClient } from "@/lib/supabase/admin";
@@ -222,4 +223,28 @@ export async function adminSendTestEmails(bookId: string): Promise<{ ok: boolean
         ? `Sent ${result.sent} test emails to ${admin.email}.`
         : `Sent ${result.sent}, but ${result.failed} failed: ${result.error ?? "unknown problem"}`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Orders (admin)
+// ---------------------------------------------------------------------------
+
+/** Changes an order's status (admins only). */
+export async function adminSetOrderStatus(orderId: string, status: string): Promise<{ ok: boolean; error?: string }> {
+  if (!(await getAdmin())) return { ok: false, error: "Only admins can do this." };
+  if (!isBookId(orderId)) return { ok: false, error: "Order not found." };
+  if (!(adminStatusChoices as string[]).includes(status)) return { ok: false, error: "Please choose a status." };
+  const admin = getAdminClient();
+  if (!admin) return { ok: false, error: "SUPABASE_SECRET_KEY is missing." };
+
+  // Only paid orders can move through the production steps.
+  const { data, error } = await admin
+    .from("orders")
+    .update({ status, status_changed_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .in("status", adminStatusChoices)
+    .select("id");
+  if (error) return { ok: false, error: "Sorry, that didn't save. Please try again." };
+  if (!data || data.length === 0) return { ok: false, error: "Only paid orders can be updated." };
+  return { ok: true };
 }
