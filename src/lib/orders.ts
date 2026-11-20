@@ -3,18 +3,38 @@
 // so the price shown on the page can't be changed by the visitor.
 
 export const PRODUCT_NAME = "Keepsake book";
-export const PRODUCT_DESCRIPTION = "A 32-page A4 hardback memorial book, with UK delivery included.";
-export const BOOK_PRICE_PENCE = 5999; // £59.99, including UK delivery
-export const EXTRA_COPY_PENCE = 2999; // £29.99 each
+export const PRODUCT_DESCRIPTION = "A 24-page A4 hardback memorial book.";
+export const BOOK_PRICE_PENCE = 3999; // £39.99 (24 pages)
+/** Optional upgrade to 32 pages, charged once per order. */
+export const UPGRADE_32_PAGES_PENCE = 700; // +£7
+export const EXTRA_COPY_PENCE = 1999; // £19.99 each, delivered to the same address
+/** UK tracked delivery, charged once per order (one delivery address). */
+export const DELIVERY_PENCE = 799; // £7.99
 export const MAX_EXTRA_COPIES = 10;
 /** Working days until the organiser receives a preview to approve. */
 export const PREVIEW_WORKING_DAYS = 5;
+/** Roughly how many memories fit a 24-page book (shown to organisers). */
+export const MEMORIES_FOR_24_PAGES = "8–12";
 
-export function orderTotalPence(extraCopies: number) {
-  return BOOK_PRICE_PENCE + extraCopies * EXTRA_COPY_PENCE;
+export type OrderChoices = { extraCopies: number; pages: 24 | 32 };
+
+/** Each line of the price, in order. Used on the order page, Stripe, and emails. */
+export function priceLines({ extraCopies, pages }: OrderChoices) {
+  return [
+    { label: "Keepsake book (24 pages)", pence: BOOK_PRICE_PENCE },
+    ...(pages === 32 ? [{ label: "Upgrade to 32 pages", pence: UPGRADE_32_PAGES_PENCE }] : []),
+    ...(extraCopies > 0
+      ? [{ label: `${extraCopies} extra ${extraCopies === 1 ? "copy" : "copies"}`, pence: extraCopies * EXTRA_COPY_PENCE }]
+      : []),
+    { label: "UK tracked delivery", pence: DELIVERY_PENCE },
+  ];
 }
 
-/** 5999 → "£59.99" */
+export function orderTotalPence(choices: OrderChoices) {
+  return priceLines(choices).reduce((sum, line) => sum + line.pence, 0);
+}
+
+/** 3999 → "£39.99" */
 export function formatPounds(pence: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 }

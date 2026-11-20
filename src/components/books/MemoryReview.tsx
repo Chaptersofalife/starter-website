@@ -18,6 +18,8 @@ export type ReviewMemory = {
   /** "17 November 2026 at 14:05" */
   sentAt: string;
   status: MemoryStatus;
+  /** Starred by the organiser as one they most want included. */
+  favourite: boolean;
   /** What the contributor wrote. Never changed. */
   originalMemory: string;
   originalSayings: string | null;
@@ -33,6 +35,7 @@ type MemoryReviewProps = {
   readOnly?: boolean;
   actions: {
     setStatus: (memoryId: string, status: MemoryStatus) => Promise<ReviewResult>;
+    setFavourite: (memoryId: string, favourite: boolean) => Promise<ReviewResult>;
     saveEdit: (
       memoryId: string,
       text: { memory: string; sayings: string },
@@ -90,7 +93,28 @@ export default function MemoryReview({ memory, actions, readOnly = false }: Memo
           </p>
           <p className="review-meta">Sent {memory.sentAt}</p>
         </div>
-        <p className={`status-badge status-${memory.status}`}>{statusLabels[memory.status]}</p>
+        <div className="review-badges">
+          {readOnly ? (
+            memory.favourite && (
+              <span className="favourite-star is-on" aria-label="Favourite">
+                ★ Favourite
+              </span>
+            )
+          ) : (
+            <button
+              type="button"
+              className={`favourite-star${memory.favourite ? " is-on" : ""}`}
+              aria-pressed={memory.favourite}
+              disabled={pending}
+              onClick={() => run(() => actions.setFavourite(memory.id, !memory.favourite))}
+              title={memory.favourite ? "Remove from favourites" : "Mark as a favourite"}
+            >
+              <span aria-hidden="true">{memory.favourite ? "★" : "☆"}</span> Favourite
+              <span className="visually-hidden"> memory from {memory.contributorName}</span>
+            </button>
+          )}
+          <p className={`status-badge status-${memory.status}`}>{statusLabels[memory.status]}</p>
+        </div>
       </header>
 
       {mode === "edit" ? (

@@ -66,6 +66,8 @@ export type LayoutPackage = {
     text: string;
     sayings: string | null;
     edited: boolean;
+    /** Starred by the organiser as one they most want included. */
+    favourite: boolean;
     photos: LayoutPhoto[];
   }[];
   preparedAt: string;
@@ -106,7 +108,7 @@ export async function getLayoutPackage(bookId: string): Promise<LayoutPackage | 
       .maybeSingle(),
     admin
       .from("memories")
-      .select("id, contributor_name, relationship, memory, sayings, edited_memory, edited_sayings, created_at")
+      .select("id, contributor_name, relationship, memory, sayings, edited_memory, edited_sayings, favourite, created_at")
       .eq("book_id", bookId)
       .eq("status", "approved")
       .order("created_at", { ascending: true }),
@@ -175,6 +177,7 @@ export async function getLayoutPackage(bookId: string): Promise<LayoutPackage | 
       text: m.edited_memory ?? m.memory,
       sayings: m.edited_sayings ?? m.sayings,
       edited: m.edited_memory !== null || m.edited_sayings !== null,
+      favourite: Boolean(m.favourite),
       photos: ps
         .filter((x) => urls.has(x.p.original_path))
         .map((x) => ({

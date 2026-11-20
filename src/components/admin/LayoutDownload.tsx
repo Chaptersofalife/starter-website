@@ -139,14 +139,15 @@ function csvCell(value: string | number | null | undefined) {
 }
 
 function photoListCsv(pkg: LayoutPackage) {
-  const rows = [["Photo code", "Memory", "Contributor", "Caption", "Roughly when", "Width", "Height", "Note", "File"]];
-  if (pkg.cover) rows.push(["COVER", "", "", "Cover photo", "", "", "", "", pkg.cover.zipPath]);
+  const rows = [["Photo code", "Memory", "Contributor", "Favourite", "Caption", "Roughly when", "Width", "Height", "Note", "File"]];
+  if (pkg.cover) rows.push(["COVER", "", "", "", "Cover photo", "", "", "", "", pkg.cover.zipPath]);
   for (const m of pkg.memories) {
     for (const p of m.photos) {
       rows.push([
         p.code,
         m.number,
         m.contributorName,
+        m.favourite ? "Yes" : "",
         p.caption ?? "",
         p.taken ?? "",
         String(p.width ?? ""),
@@ -213,6 +214,7 @@ async function buildDocument(pkg: LayoutPackage): Promise<Blob> {
       }),
     );
     children.push(label("Relationship", m.relationship));
+    if (m.favourite) children.push(para("★ Favourite: the organiser most wants this one included.", { bold: true, size: 20 }));
     if (m.edited) children.push(para("(Text corrected by the organiser.)", { italics: true, size: 18 }));
     children.push(...paragraphs(m.text));
 

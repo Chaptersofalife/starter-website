@@ -41,10 +41,10 @@ async function Thanks({ id, sessionId }: { id: string; sessionId: string }) {
     isBookId(id) && /^cs_[A-Za-z0-9_]+$/.test(sessionId)
       ? await supabase
           .from("orders")
-          .select("status, amount_pence, total_copies, organiser_email, book_name")
+          .select("status, amount_pence, total_copies, page_count, organiser_email, book_name")
           .eq("book_id", id)
           .eq("stripe_checkout_session_id", sessionId)
-          .maybeSingle<{ status: OrderStatus; amount_pence: number; total_copies: number; organiser_email: string; book_name: string }>()
+          .maybeSingle<{ status: OrderStatus; amount_pence: number; total_copies: number; page_count: number; organiser_email: string; book_name: string }>()
       : { data: null };
 
   const confirmed = order && paidStatuses.includes(order.status);
@@ -54,8 +54,10 @@ async function Thanks({ id, sessionId }: { id: string; sessionId: string }) {
       <h1>Thank you</h1>
       {confirmed ? (
         <p className={styles.lead}>
-          Your payment of {formatPounds(order.amount_pence)} has been received, and we&rsquo;ve sent a
-          confirmation to {order.organiser_email}.
+          Your payment of {formatPounds(order.amount_pence)} (including UK tracked delivery) has been
+          received for your {order.page_count}-page book
+          {order.total_copies > 1 ? ` and ${order.total_copies - 1} extra ${order.total_copies === 2 ? "copy" : "copies"}` : ""}, and
+          we&rsquo;ve sent a confirmation to {order.organiser_email}.
         </p>
       ) : (
         <p className={styles.lead}>
@@ -74,7 +76,10 @@ async function Thanks({ id, sessionId }: { id: string; sessionId: string }) {
           We&rsquo;ll design your book and send you a preview to approve within {PREVIEW_WORKING_DAYS} working days.
         </li>
         <li>Nothing is printed until you&rsquo;re happy with it.</li>
-        <li>Your {order && order.total_copies > 1 ? `${order.total_copies} books are` : "book is"} then printed, bound and delivered to your door.</li>
+        <li>
+          Your {order && order.total_copies > 1 ? `${order.total_copies} books are` : "book is"} then printed, bound and sent
+          to you by UK tracked delivery. We&rsquo;ll email you the tracking details.
+        </li>
       </ol>
       <p className="muted">
         If you have any questions in the meantime, just reply to your confirmation email.

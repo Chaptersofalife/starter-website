@@ -1,6 +1,6 @@
 "use client";
 
-// Lets contributors choose up to 10 photos, see a preview of each, add an
+// Lets contributors choose up to 2 photos, see a preview of each, add an
 // optional caption and rough date, and remove any before sending.
 // Works with the phone's photo library or camera.
 
@@ -44,7 +44,7 @@ export default function PhotoPicker({ photos, onChange, disabled, personName }: 
     const toAdd = chosen.slice(0, Math.max(0, remaining));
     setNote(
       chosen.length > toAdd.length
-        ? `You can add up to ${MAX_PHOTOS_PER_MEMORY} photos, so we've added the first ${toAdd.length}.`
+        ? `Each person can share up to ${MAX_PHOTOS_PER_MEMORY} photos, so we've added the first ${toAdd.length}.`
         : "",
     );
 
@@ -98,7 +98,7 @@ export default function PhotoPicker({ photos, onChange, disabled, personName }: 
     <div className="photo-picker">
       <div className="photo-picker-head">
         <p className="photo-picker-label" id="photos-label">
-          Photos <span className="optional">(optional, up to {MAX_PHOTOS_PER_MEMORY})</span>
+          Photos <span className="optional">(optional, up to {MAX_PHOTOS_PER_MEMORY} per person)</span>
         </p>
         <p className="field-hint" id="photos-hint">
           Photos of {personName}, or of times you shared. JPG, PNG and iPhone photos all work.

@@ -310,3 +310,11 @@
   gap: 0.5rem 0.75rem;
   color: var(--color-stone);
 }
+
+.fitNote {
+  padding: 0.6rem 0.9rem;
+  border-left: 2px solid var(--color-gold);
+  background: var(--color-gold-tint);
+  font-size: 1rem;
+  max-width: 44rem;
+}

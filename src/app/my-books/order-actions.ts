@@ -9,10 +9,12 @@ import { isBookId } from "@/lib/books";
 import { isOpen } from "@/lib/closing";
 import {
   BOOK_PRICE_PENCE,
+  DELIVERY_PENCE,
   EXTRA_COPY_PENCE,
   MAX_EXTRA_COPIES,
   PRODUCT_DESCRIPTION,
   PRODUCT_NAME,
+  UPGRADE_32_PAGES_PENCE,
   normalisePostcode,
   orderTotalPence,
   type DeliveryAddress,
@@ -25,7 +27,7 @@ import { createClient } from "@/lib/supabase/server";
 export type CheckoutState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof DeliveryAddress, string>>;
-  values?: DeliveryAddress & { extra_copies: string };
+  values?: DeliveryAddress & { extra_copies: string; pages: string };
 };
 
 const limits: Record<keyof DeliveryAddress, number> = {
@@ -49,6 +51,7 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
     postcode: get("postcode"),
     phone: get("phone"),
     extra_copies: get("extra_copies"),
+    pages: get("pages"),
   };
 
   // Check the answers.
@@ -67,6 +70,7 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
   if (!Number.isInteger(extraCopies) || extraCopies < 0 || extraCopies > MAX_EXTRA_COPIES) {
     return { values, error: `Please choose between 0 and ${MAX_EXTRA_COPIES} extra copies.` };
   }
+  const pages: 24 | 32 = values.pages === "32" ? 32 : 24;
   if (Object.keys(fieldErrors).length > 0) {
     return { values, fieldErrors, error: "Please check the highlighted answers." };
   }
@@ -95,7 +99,7 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
 
   // Save the order as "awaiting payment". The price is worked out here, on
   // the server, so it can't be changed in the browser.
-  const amount = orderTotalPence(extraCopies);
+  const amount = orderTotalPence({ extraCopies, pages });
   const { data: order, error: orderError } = await admin
     .from("orders")
     .insert({
@@ -106,6 +110,8 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
       extra_copies: extraCopies,
       total_copies: extraCopies + 1,
       amount_pence: amount,
+      page_count: pages,
+      delivery_pence: DELIVERY_PENCE,
       currency: "gbp",
       delivery_name: values.delivery_name,
       address_line1: values.address_line1,
@@ -133,7 +139,7 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
       allowed_payment_method_types: ["card"],
       customer_email: user.email,
       client_reference_id: order.id,
-      metadata: { order_id: order.id, book_id: book.id },
+      metadata: { order_id: order.id, book_id: book.id, pages: String(pages) },
       payment_intent_data: {
         description: `${PRODUCT_NAME} for ${book.full_name}`,
         metadata: { order_id: order.id, book_id: book.id },
@@ -145,9 +151,21 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
           price_data: {
             currency: "gbp",
             unit_amount: BOOK_PRICE_PENCE,
-            product_data: { name: `${PRODUCT_NAME}: ${book.full_name}`, description: PRODUCT_DESCRIPTION },
+            product_data: { name: `${PRODUCT_NAME} (24 pages): ${book.full_name}`, description: PRODUCT_DESCRIPTION },
           },
         },
+        ...(pages === 32
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "gbp",
+                  unit_amount: UPGRADE_32_PAGES_PENCE,
+                  product_data: { name: "Upgrade to 32 pages", description: "Eight more pages for memories and photographs." },
+                },
+              },
+            ]
+          : []),
         ...(extraCopies > 0
           ? [
               {
@@ -155,11 +173,23 @@ export async function startCheckout(bookId: string, _prev: CheckoutState, formDa
                 price_data: {
                   currency: "gbp",
                   unit_amount: EXTRA_COPY_PENCE,
-                  product_data: { name: "Extra copy", description: "An additional copy of the same book." },
+                  product_data: {
+                    name: "Extra copy",
+                    description: "An additional copy of the same book, delivered to the same address.",
+                  },
                 },
               },
             ]
           : []),
+        // Delivery as its own line, so it's clear on the payment page and receipt.
+        {
+          quantity: 1,
+          price_data: {
+            currency: "gbp",
+            unit_amount: DELIVERY_PENCE,
+            product_data: { name: "UK tracked delivery", description: "One delivery address in the UK." },
+          },
+        },
       ],
       success_url: `${origin}/my-books/${book.id}/order/thanks?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/my-books/${book.id}/order?cancelled=1`,

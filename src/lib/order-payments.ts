@@ -125,6 +125,8 @@ async function sendOrderEmails(orderId: string) {
     bookName: order.book_name,
     totalCopies: order.total_copies,
     extraCopies: order.extra_copies,
+    pages: order.page_count ?? 24,
+    delivery: formatPounds(order.delivery_pence ?? 0),
     amount: formatPounds(order.amount_pence),
     address: addressLines(order),
     paidOn: formatDate((order.paid_at ?? new Date().toISOString()).slice(0, 10)),

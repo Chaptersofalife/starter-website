@@ -21,6 +21,9 @@ export const memoryLimits = {
 } as const;
 
 /** Gentle prompts shown above the memory box. Edit them here. */
+/** The suggested length of a memory, shown to contributors. */
+export const SUGGESTED_WORDS = { min: 100, max: 200 };
+
 export const memoryPrompts = [
   "How did you meet?",
   "A time they made you laugh",

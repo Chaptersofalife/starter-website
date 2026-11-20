@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import type { MemoryFields, MemoryResult } from "@/app/contribute/actions";
 import FormError from "@/components/auth/FormError";
-import { memoryLimits, memoryPrompts } from "@/lib/invites";
+import { SUGGESTED_WORDS, memoryLimits, memoryPrompts } from "@/lib/invites";
 import { uploadPhotoFiles } from "@/lib/photos-client";
 import PhotoPicker, { type PickedPhoto } from "./PhotoPicker";
 
@@ -33,6 +33,7 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
   // Their details, kept for "Add another memory".
   const [kept, setKept] = useState<Partial<MemoryFields>>({});
   const [formKey, setFormKey] = useState(0);
+  const [words, setWords] = useState(0);
 
   // Ask before leaving the page while photos are still uploading.
   useEffect(() => {
@@ -167,6 +168,7 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
             className="button"
             onClick={() => {
               setResult({});
+              setWords(0);
               setFormKey((k) => k + 1);
               setPhase("editing");
             }}
@@ -275,7 +277,10 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
               <li key={prompt}>{prompt}</li>
             ))}
           </ul>
-          <p>Write as much or as little as you like.</p>
+          <p>
+            Around {SUGGESTED_WORDS.min}&ndash;{SUGGESTED_WORDS.max} words is ideal: a few short paragraphs, so
+            there&rsquo;s room in the book for everyone&rsquo;s memories.
+          </p>
         </div>
         <textarea
           id="memory"
@@ -283,8 +288,15 @@ export default function MemoryForm({ submit, finishPhotos, abandonPhoto, personN
           rows={12}
           maxLength={memoryLimits.memory}
           required
-          {...errorProps("memory", "memory-prompts")}
+          onChange={(e) => setWords(e.target.value.trim() ? e.target.value.trim().split(/\s+/).length : 0)}
+          {...errorProps("memory", "memory-prompts memory-count")}
         />
+        <p id="memory-count" className="field-hint" aria-live="polite">
+          {words} {words === 1 ? "word" : "words"}
+          {words > SUGGESTED_WORDS.max + 50
+            ? ". That's a lovely long memory. The family may shorten it a little to fit the book."
+            : ` · around ${SUGGESTED_WORDS.min}–${SUGGESTED_WORDS.max} is ideal`}
+        </p>
         {fieldError("memory")}
       </div>
 
