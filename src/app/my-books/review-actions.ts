@@ -122,3 +122,8 @@ export async function deleteMemory(memoryId: string): Promise<ReviewResult> {
   revalidatePath(`/my-books/${data[0].book_id}`);
   return { ok: true };
 }
+
+/** Stars (or un-stars) a memory as one the organiser most wants included. */
+export async function setFavourite(memoryId: string, favourite: boolean): Promise<ReviewResult> {
+  return updateMemory(memoryId, { favourite: Boolean(favourite) });
+}

@@ -1,7 +1,7 @@
 // Shared rules for photos, used by both the browser and the server.
 
-/** Most photos one contributor can add to one memory. */
-export const MAX_PHOTOS_PER_MEMORY = 10;
+/** Most photos each person can share for a book (across all their memories). */
+export const MAX_PHOTOS_PER_MEMORY = 2;
 
 /** Largest file accepted (Supabase's free plan allows up to 50 MB per file). */
 export const MAX_PHOTO_BYTES = 50 * 1024 * 1024;

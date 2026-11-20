@@ -24,6 +24,7 @@ import {
 import {
   deleteMemory,
   saveMemoryEdit,
+  setFavourite,
   setMemoryStatus,
   setPhotoHidden,
   undoMemoryEdit,
@@ -40,7 +41,7 @@ import type { GalleryPhoto } from "@/components/books/PhotoGallery";
 import { bookColumns, formatDate, isBookId, todayInUK, type Book } from "@/lib/books";
 import { daysLeftText, isOpen } from "@/lib/closing";
 import { invitePath } from "@/lib/invites";
-import { formatPounds, orderStatusLabels, paidStatuses, type OrderStatus } from "@/lib/orders";
+import { MEMORIES_FOR_24_PAGES, formatPounds, orderStatusLabels, paidStatuses, type OrderStatus } from "@/lib/orders";
 import { printWarning } from "@/lib/photos";
 import { signedViewUrls } from "@/lib/photos-server";
 import { createClient } from "@/lib/supabase/server";
@@ -61,6 +62,7 @@ type Memory = {
   memory: string;
   sayings: string | null;
   status: MemoryStatus;
+  favourite: boolean;
   edited_memory: string | null;
   edited_sayings: string | null;
   invitation_id: string | null;
@@ -88,9 +90,10 @@ type BookWithExtras = Book & {
   cover_height: number | null;
 };
 
-type Filter = "all" | MemoryStatus;
+type Filter = "all" | MemoryStatus | "favourites";
 const filters: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "favourites", label: "★ Favourites" },
   { value: "waiting", label: "Waiting" },
   { value: "approved", label: "Approved" },
   { value: "hidden", label: "Hidden" },
@@ -131,7 +134,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
     supabase
       .from("memories")
       .select(
-        "id, contributor_name, contributor_email, relationship, memory, sayings, status, edited_memory, edited_sayings, invitation_id, created_at",
+        "id, contributor_name, contributor_email, relationship, memory, sayings, status, favourite, edited_memory, edited_sayings, invitation_id, created_at",
       )
       .eq("book_id", id)
       .order("created_at", { ascending: false })
@@ -203,8 +206,14 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
     approved: count("approved"),
     waiting: count("waiting"),
     hidden: count("hidden"),
+    favourites: allMemories.filter((m) => m.favourite).length,
   };
-  const shown = filter === "all" ? allMemories : allMemories.filter((m) => m.status === filter);
+  const shown =
+    filter === "all"
+      ? allMemories
+      : filter === "favourites"
+        ? allMemories.filter((m) => m.favourite)
+        : allMemories.filter((m) => m.status === filter);
 
   // Private viewing links (valid for an hour) for the cover and the photos shown.
   const shownIds = new Set(shown.map((m) => m.id));
@@ -245,6 +254,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
 
   const reviewActions = {
     setStatus: setMemoryStatus,
+    setFavourite,
     saveEdit: saveMemoryEdit,
     undoEdit: undoMemoryEdit,
     setPhotoHidden,
@@ -382,6 +392,10 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
             <dt>Hidden</dt>
             <dd>{summary.hidden}</dd>
           </div>
+          <div className={styles.summaryWaiting}>
+            <dt>★ Favourites</dt>
+            <dd>{summary.favourites}</dd>
+          </div>
         </dl>
         {summary.memories === 0 && (
           <p className="muted">
@@ -398,6 +412,11 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
             <h2 id="memories-heading">Memories</h2>
             <p className="muted">
               Approved memories will go in the book. Hidden ones are kept safely, but left out.
+            </p>
+            <p className={styles.fitNote}>
+              A 24-page book fits about {MEMORIES_FOR_24_PAGES} memories, depending on their length and photos
+              (choose 32 pages when you order for a few more). Star your <strong>★ favourites</strong> so we
+              know which ones matter most to you.
             </p>
           </div>
 
@@ -427,6 +446,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
               {filter === "waiting" && "Nothing is waiting for review. You're all caught up."}
               {filter === "approved" && "No memories have been approved yet."}
               {filter === "hidden" && "No memories are hidden."}
+              {filter === "favourites" && "No favourites yet. Tap the ☆ on a memory to star it."}
             </p>
           ) : (
             <ol className={styles.reviewList}>
@@ -438,6 +458,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
                   relationship: m.relationship,
                   sentAt: formatSent(m.created_at),
                   status: m.status,
+                  favourite: m.favourite,
                   originalMemory: m.memory,
                   originalSayings: m.sayings,
                   editedMemory: m.edited_memory,

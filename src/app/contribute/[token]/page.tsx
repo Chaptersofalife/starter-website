@@ -101,8 +101,9 @@ async function Contribute({ token, invitationKey }: { token: string; invitationK
               words will become part of a book their family will keep.
             </p>
             <p className={styles.lead}>
-              There&rsquo;s no right or wrong way to do this. A few lines or a long
-              story are equally precious. Take your time.
+              There&rsquo;s no right or wrong way to do this. A few short
+              paragraphs (around 100&ndash;200 words) and up to two photographs are
+              perfect. Take your time.
             </p>
           </>
         ) : (

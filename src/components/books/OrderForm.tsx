@@ -9,11 +9,12 @@ import { useActionState, useState } from "react";
 import type { CheckoutState } from "@/app/my-books/order-actions";
 import FormError from "@/components/auth/FormError";
 import {
-  BOOK_PRICE_PENCE,
   EXTRA_COPY_PENCE,
   MAX_EXTRA_COPIES,
+  UPGRADE_32_PAGES_PENCE,
   formatPounds,
   orderTotalPence,
+  priceLines,
   type DeliveryAddress,
 } from "@/lib/orders";
 
@@ -26,6 +27,7 @@ type OrderFormProps = {
 export default function OrderForm({ action, defaultName }: OrderFormProps) {
   const [state, formAction, pending] = useActionState<CheckoutState, FormData>(action, {});
   const [extra, setExtra] = useState(Number(state.values?.extra_copies ?? 0) || 0);
+  const [pages, setPages] = useState<24 | 32>(state.values?.pages === "32" ? 32 : 24);
   const errors = state.fieldErrors ?? {};
   const v = state.values;
 
@@ -61,12 +63,31 @@ export default function OrderForm({ action, defaultName }: OrderFormProps) {
     </div>
   );
 
-  const total = orderTotalPence(extra);
+  const choices = { extraCopies: extra, pages };
+  const total = orderTotalPence(choices);
 
   return (
     <form action={formAction} className="form" noValidate>
       <fieldset className="order-fieldset">
-        <legend>Copies</legend>
+        <legend>Your book</legend>
+        <div className="field" role="radiogroup" aria-labelledby="pages-label">
+          <p id="pages-label" className="field-label">Number of pages</p>
+          <label className="choice">
+            <input type="radio" name="pages" value="24" checked={pages === 24} onChange={() => setPages(24)} />
+            <span>
+              <strong>24 pages</strong>
+              <span className="field-hint">Room for about 8–12 memories with photographs.</span>
+            </span>
+          </label>
+          <label className="choice">
+            <input type="radio" name="pages" value="32" checked={pages === 32} onChange={() => setPages(32)} />
+            <span>
+              <strong>32 pages (+{formatPounds(UPGRADE_32_PAGES_PENCE)})</strong>
+              <span className="field-hint">Eight more pages, for more memories and photographs.</span>
+            </span>
+          </label>
+        </div>
+
         <div className="field">
           <label htmlFor="extra_copies">Extra copies, at {formatPounds(EXTRA_COPY_PENCE)} each</label>
           <select
@@ -81,26 +102,16 @@ export default function OrderForm({ action, defaultName }: OrderFormProps) {
               </option>
             ))}
           </select>
-          <p className="field-hint">For other family members. Every copy is identical.</p>
+          <p className="field-hint">Every copy is identical, and all are delivered together to the same address.</p>
         </div>
 
         <dl className="order-summary">
-          <div>
-            <dt>Keepsake book</dt>
-            <dd>{formatPounds(BOOK_PRICE_PENCE)}</dd>
-          </div>
-          {extra > 0 && (
-            <div>
-              <dt>
-                {extra} extra {extra === 1 ? "copy" : "copies"}
-              </dt>
-              <dd>{formatPounds(extra * EXTRA_COPY_PENCE)}</dd>
+          {priceLines(choices).map((line) => (
+            <div key={line.label}>
+              <dt>{line.label}</dt>
+              <dd>{formatPounds(line.pence)}</dd>
             </div>
-          )}
-          <div>
-            <dt>UK delivery</dt>
-            <dd>Included</dd>
-          </div>
+          ))}
           <div className="order-total">
             <dt>Total</dt>
             <dd>{formatPounds(total)}</dd>
@@ -110,7 +121,7 @@ export default function OrderForm({ action, defaultName }: OrderFormProps) {
 
       <fieldset className="order-fieldset">
         <legend>Delivery address</legend>
-        <p className="field-hint">We can deliver to UK addresses only, for now.</p>
+        <p className="field-hint">UK tracked delivery to one address. We can deliver to UK addresses only, for now.</p>
         {field("delivery_name", "Full name", { autoComplete: "shipping name", defaultValue: defaultName })}
         {field("address_line1", "Address line 1", { autoComplete: "shipping address-line1" })}
         {field("address_line2", "Address line 2", { optional: true, autoComplete: "shipping address-line2" })}

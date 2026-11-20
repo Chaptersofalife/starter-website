@@ -26,6 +26,8 @@ type Order = {
   organiser_email: string;
   extra_copies: number;
   total_copies: number;
+  page_count: number;
+  delivery_pence: number;
   amount_pence: number;
   delivery_name: string;
   address_line1: string;
@@ -148,10 +150,13 @@ async function Orders({ showAll }: { showAll: boolean }) {
               </header>
               <dl className={styles.facts}>
                 <div>
-                  <dt>Copies</dt>
+                  <dt>Book</dt>
                   <dd>
-                    {o.total_copies}
-                    {o.extra_copies > 0 ? ` (1 + ${o.extra_copies} extra)` : ""} · {formatPounds(o.amount_pence)}
+                    {o.page_count} pages · {o.total_copies} {o.total_copies === 1 ? "copy" : "copies"}
+                    {o.extra_copies > 0 ? ` (1 + ${o.extra_copies} extra)` : ""}
+                    <span className="address-line">
+                      {formatPounds(o.amount_pence)} paid, including {formatPounds(o.delivery_pence)} UK tracked delivery
+                    </span>
                   </dd>
                 </div>
                 <div>

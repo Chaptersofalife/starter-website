@@ -9,7 +9,14 @@ import { startCheckout } from "@/app/my-books/order-actions";
 import OrderForm from "@/components/books/OrderForm";
 import { isBookId } from "@/lib/books";
 import { isOpen } from "@/lib/closing";
-import { BOOK_PRICE_PENCE, EXTRA_COPY_PENCE, PREVIEW_WORKING_DAYS, formatPounds } from "@/lib/orders";
+import {
+  BOOK_PRICE_PENCE,
+  DELIVERY_PENCE,
+  EXTRA_COPY_PENCE,
+  PREVIEW_WORKING_DAYS,
+  UPGRADE_32_PAGES_PENCE,
+  formatPounds,
+} from "@/lib/orders";
 import { createClient } from "@/lib/supabase/server";
 import styles from "../../books.module.css";
 
@@ -60,14 +67,15 @@ async function Order({ id, cancelled }: { id: string; cancelled: boolean }) {
           <div className="order-product">
             <h2>Keepsake book</h2>
             <ul>
-              <li>32 pages, A4, hardback</li>
+              <li>24 pages, A4, hardback (or 32 pages for {formatPounds(UPGRADE_32_PAGES_PENCE)} more)</li>
               <li>The memories and photographs you approved, designed with care</li>
               <li>A preview to look through within {PREVIEW_WORKING_DAYS} working days. Nothing is printed until you approve it</li>
-              <li>UK delivery included</li>
+              <li>Sent by UK tracked delivery</li>
             </ul>
             <p className="order-price">
-              {formatPounds(BOOK_PRICE_PENCE)} <span>· extra copies {formatPounds(EXTRA_COPY_PENCE)} each</span>
+              {formatPounds(BOOK_PRICE_PENCE)} <span>+ {formatPounds(DELIVERY_PENCE)} UK tracked delivery</span>
             </p>
+            <p className="field-hint">Extra copies {formatPounds(EXTRA_COPY_PENCE)} each, delivered together to the same address.</p>
           </div>
 
           {cancelled && (

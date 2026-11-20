@@ -92,7 +92,7 @@ export function invitationEmail(d: InviteDetails & { message: string | null }): 
       ),
       d.message ? quote(d.message) + p(`<span style="color:${c.stone};">&mdash; ${esc(d.organiserName)}</span>`) : "",
       p(
-        `You can share a favourite memory, a story, a photograph or a saying they loved. A few lines are just as precious as a long story, and you don&rsquo;t need an account.${esc(by)}`,
+        `You can share a favourite memory or story (a few short paragraphs, around 100&ndash;200 words, is perfect), up to two photographs, and a saying they loved. You don&rsquo;t need an account.${esc(by)}`,
       ),
       button(d.link, "Add my memories"),
       p(`<span style="font-size:14px;color:${c.stone};">If the button doesn&rsquo;t work, copy this link into your browser:<br><a href="${esc(d.link)}" style="color:${c.sage};word-break:break-all;">${esc(d.link)}</a></span>`),
@@ -105,7 +105,7 @@ export function invitationEmail(d: InviteDetails & { message: string | null }): 
     `${d.organiserName} is putting together a book of memories for ${d.personName}'s family, and would love you to be part of it.`,
     ...(d.message ? ["", d.message, `— ${d.organiserName}`] : []),
     "",
-    `You can share a favourite memory, a story, a photograph or a saying they loved. A few lines are just as precious as a long story, and you don't need an account.${by}`,
+    `You can share a favourite memory or story (a few short paragraphs, around 100-200 words, is perfect), up to two photographs, and a saying they loved. You don't need an account.${by}`,
     "",
     `Add your memories: ${d.link}`,
     "",
@@ -249,6 +249,10 @@ type OrderEmailDetails = {
   bookName: string;
   totalCopies: number;
   extraCopies: number;
+  /** 24, or 32 with the upgrade */
+  pages: number;
+  /** e.g. "£7.99" */
+  delivery: string;
   amount: string;
   address: string[];
   paidOn: string;
@@ -260,8 +264,10 @@ function orderTable(d: OrderEmailDetails) {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;font-size:15px;line-height:1.5;">${[
     row("Order", esc(d.orderRef)),
     row("Book", `Keepsake book for ${esc(d.bookName)}`),
+    row("Pages", `${d.pages}, A4 hardback`),
     row("Copies", `${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`),
-    row("Paid", `${esc(d.amount)} on ${esc(d.paidOn)}`),
+    row("Delivery", `UK tracked delivery, ${esc(d.delivery)}`),
+    row("Paid", `${esc(d.amount)} in total, on ${esc(d.paidOn)}`),
     row("Delivering to", d.address.map(esc).join("<br>")),
   ].join("")}</table>`;
 }
@@ -270,8 +276,10 @@ function orderText(d: OrderEmailDetails) {
   return [
     `Order: ${d.orderRef}`,
     `Book: Keepsake book for ${d.bookName}`,
+    `Pages: ${d.pages}, A4 hardback`,
     `Copies: ${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`,
-    `Paid: ${d.amount} on ${d.paidOn}`,
+    `Delivery: UK tracked delivery, ${d.delivery}`,
+    `Paid: ${d.amount} in total, on ${d.paidOn}`,
     "Delivering to:",
     ...d.address.map((l) => `  ${l}`),
   ].join("\n");
@@ -295,7 +303,7 @@ export function orderConfirmationEmail(
         <li style="margin-bottom:6px;">We design your book using the memories and photographs you approved.</li>
         <li style="margin-bottom:6px;">Within ${d.previewDays} working days, we&rsquo;ll send you a preview to look through.</li>
         <li style="margin-bottom:6px;">Nothing is printed until you approve it.</li>
-        <li>Your book is printed, bound and delivered to your door.</li>
+        <li>Your book is printed, bound and sent by UK tracked delivery. We&rsquo;ll email you the tracking details.</li>
       </ol>`,
       p("If you have any questions, simply reply to this email."),
       button(d.bookUrl, "View your book"),
@@ -313,7 +321,7 @@ export function orderConfirmationEmail(
     "1. We design your book using the memories and photographs you approved.",
     `2. Within ${d.previewDays} working days, we'll send you a preview to look through.`,
     "3. Nothing is printed until you approve it.",
-    "4. Your book is printed, bound and delivered to your door.",
+    "4. Your book is printed, bound and sent by UK tracked delivery. We'll email you the tracking details.",
     "",
     "If you have any questions, simply reply to this email.",
     `View your book: ${d.bookUrl}`,

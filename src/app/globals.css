@@ -628,6 +628,45 @@ label.button[aria-disabled="true"] {
   min-width: 0;
 }
 
+.review-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The ☆ / ★ favourite button */
+.favourite-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 40px;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-stone);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.favourite-star span[aria-hidden] {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.favourite-star.is-on {
+  border-color: var(--color-gold);
+  background: var(--color-gold-tint-strong);
+  color: var(--color-ink);
+}
+
+span.favourite-star {
+  cursor: default;
+}
+
 /* The card's own spacing already separates these lines */
 .review-card p + p {
   margin-top: 0;
@@ -1026,6 +1065,41 @@ label.button[aria-disabled="true"] {
 }
 
 /* ---------- Ordering ---------- */
+
+.field-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* A large, easy-to-tap radio choice */
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-weight: 400 !important;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-sage);
+  outline: 1px solid var(--color-sage);
+}
+
+.choice input {
+  margin-top: 0.3rem;
+  accent-color: var(--color-sage);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.choice > span {
+  display: grid;
+  gap: 0.1rem;
+}
 
 .order-product {
   display: grid;

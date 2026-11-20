@@ -64,7 +64,7 @@ async function AdminBook({ id }: { id: string }) {
     admin
       .from("memories")
       .select(
-        "id, contributor_name, contributor_email, relationship, memory, sayings, edited_memory, edited_sayings, status, created_at",
+        "id, contributor_name, contributor_email, relationship, memory, sayings, edited_memory, edited_sayings, status, favourite, created_at",
       )
       .eq("book_id", id)
       .order("created_at", { ascending: false }),
@@ -223,7 +223,10 @@ async function AdminBook({ id }: { id: string }) {
                       </p>
                       <p className="review-meta">Sent {formatSent(m.created_at)}</p>
                     </div>
-                    <p className={`status-badge status-${m.status}`}>{statusLabels[m.status] ?? m.status}</p>
+                    <div className="review-badges">
+                      {m.favourite && <span className="favourite-star is-on">★ Favourite</span>}
+                      <p className={`status-badge status-${m.status}`}>{statusLabels[m.status] ?? m.status}</p>
+                    </div>
                   </header>
                   {edited && <p className="review-meta">Edited by the organiser. The text below is their version.</p>}
                   <p className="review-text">{m.edited_memory ?? m.memory}</p>

@@ -97,8 +97,8 @@ export default function TermsPage() {
       <h2>Ordering and payment</h2>
       <ul>
         <li>
-          The price of your book, including delivery, is shown in pounds
-          sterling before you pay.
+          The price of your book, any extras, and UK tracked delivery are
+          shown separately in pounds sterling before you pay.
         </li>
         <li>
           Payments are made by card through Stripe, a secure payment provider.

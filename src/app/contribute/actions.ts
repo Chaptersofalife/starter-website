@@ -174,6 +174,33 @@ export async function submitMemory(token: string, formData: FormData): Promise<M
     };
   }
 
+  // Each person can share up to MAX_PHOTOS_PER_MEMORY photos per book, across
+  // all their memories (matched by email address).
+  if (photos.length > 0 && admin) {
+    const { data: book } = await admin.from("books").select("id").eq("invite_token", token).maybeSingle();
+    if (book) {
+      const { data: theirMemories } = await admin
+        .from("memories")
+        .select("id")
+        .eq("book_id", book.id)
+        .ilike("contributor_email", values.contributor_email.replace(/[\\%_]/g, "\\$&"));
+      const ids = (theirMemories ?? []).map((m) => m.id);
+      const { count } = ids.length
+        ? await admin.from("memory_photos").select("id", { count: "exact", head: true }).in("memory_id", ids).eq("uploaded", true)
+        : { count: 0 };
+      const already = count ?? 0;
+      if (already + photos.length > MAX_PHOTOS_PER_MEMORY) {
+        const left = Math.max(0, MAX_PHOTOS_PER_MEMORY - already);
+        return {
+          error:
+            left === 0
+              ? `You've already shared ${already} photos for this book, which is the most each person can add. Please remove the photos to send your memory.`
+              : `Each person can share up to ${MAX_PHOTOS_PER_MEMORY} photos, and you've already shared ${already}. Please choose just ${left} more.`,
+        };
+      }
+    }
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("submit_memory", {
     invite: token,
