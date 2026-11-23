@@ -6,7 +6,9 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { startCheckout } from "@/app/my-books/order-actions";
+import BookCover from "@/components/books/BookCover";
 import OrderForm from "@/components/books/OrderForm";
+import { bookStyle } from "@/lib/book-styles";
 import { isBookId } from "@/lib/books";
 import { isOpen } from "@/lib/closing";
 import {
@@ -48,7 +50,7 @@ async function Order({ id, cancelled }: { id: string; cancelled: boolean }) {
   if (!user) redirect("/login");
 
   const [{ data: book }, { data: profile }] = await Promise.all([
-    supabase.from("books").select("id, full_name, closes_on, closed_at").eq("id", id).maybeSingle(),
+    supabase.from("books").select("id, full_name, closes_on, closed_at, book_style").eq("id", id).maybeSingle(),
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
   ]);
   if (!book) notFound();
@@ -76,6 +78,14 @@ async function Order({ id, cancelled }: { id: string; cancelled: boolean }) {
               {formatPounds(BOOK_PRICE_PENCE)} <span>+ {formatPounds(DELIVERY_PENCE)} UK tracked delivery</span>
             </p>
             <p className="field-hint">Extra copies {formatPounds(EXTRA_COPY_PENCE)} each, delivered together to the same address.</p>
+            <div className="order-style">
+              <BookCover styleId={book.book_style} title={book.full_name} />
+              <p>
+                Style: <strong>{bookStyle(book.book_style).name}</strong>
+                <br />
+                <Link href={`/my-books/${book.id}#style-heading`}>Change the style</Link>
+              </p>
+            </div>
           </div>
 
           {cancelled && (

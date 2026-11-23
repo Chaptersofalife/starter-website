@@ -7,6 +7,7 @@ import type Stripe from "stripe";
 import { formatDate } from "@/lib/books";
 import { sendEmails } from "@/lib/email";
 import { newOrderAdminEmail, orderConfirmationEmail } from "@/lib/email-templates";
+import { bookStyle } from "@/lib/book-styles";
 import { PREVIEW_WORKING_DAYS, addressLines, formatPounds } from "@/lib/orders";
 import { contactEmail, siteUrl } from "@/lib/site";
 import { stripeTestMode } from "@/lib/stripe";
@@ -119,6 +120,9 @@ async function sendOrderEmails(orderId: string) {
     ? await admin.from("profiles").select("full_name").eq("id", order.organiser_id).maybeSingle()
     : { data: null };
   const organiserName = (profile?.full_name || order.organiser_email.split("@")[0]).trim();
+  const { data: book } = order.book_id
+    ? await admin.from("books").select("book_style").eq("id", order.book_id).maybeSingle()
+    : { data: null };
 
   const details = {
     orderRef: orderReference(order.id),
@@ -127,6 +131,7 @@ async function sendOrderEmails(orderId: string) {
     extraCopies: order.extra_copies,
     pages: order.page_count ?? 24,
     delivery: formatPounds(order.delivery_pence ?? 0),
+    styleName: book ? bookStyle(book.book_style).name : undefined,
     amount: formatPounds(order.amount_pence),
     address: addressLines(order),
     paidOn: formatDate((order.paid_at ?? new Date().toISOString()).slice(0, 10)),

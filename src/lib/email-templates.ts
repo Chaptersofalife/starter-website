@@ -4,12 +4,16 @@
 // Each email has an HTML version and a plain-text version.
 
 const c = {
-  ivory: "#faf6f0",
-  ink: "#2f2a26",
-  stone: "#675d54",
-  sage: "#556b58",
-  gold: "#b8976a",
-  border: "#e2d6c6",
+  ivory: "#f8f6f1", // page background
+  ink: "#2f3e46", // body text (Charcoal Blue)
+  heading: "#354f52", // headings (Dark Slate Grey)
+  stone: "#52626a", // secondary text
+  sage: "#52796f", // Deep Teal: buttons and logo
+  link: "#3f5f57", // links (a darker Deep Teal, easier to read)
+  gold: "#c9ada7", // Almond Silk: the small divider line
+  accent: "#84a98c", // Muted Teal: details
+  border: "#cad2c5", // Ash Grey: card border
+  panel: "#e8e9e2", // soft Ash Grey tint: quoted messages
   white: "#ffffff",
 };
 
@@ -35,12 +39,12 @@ function button(href: string, label: string) {
 }
 
 function layout(title: string, body: string, footer: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><link href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"></head>
 <body style="margin:0;padding:0;background:${c.ivory};">
 <div style="margin:0;padding:32px 16px;background:${c.ivory};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:${c.white};border:1px solid ${c.border};border-radius:6px;">
-    <tr><td style="padding:36px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:${c.ink};">
-      <p style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:22px;color:${c.ink};">Chapters of a Life</p>
+    <tr><td style="padding:36px 32px 32px;font-family:Literata,Georgia,'Times New Roman',serif;font-size:16px;line-height:1.6;color:${c.ink};">
+      <p style="margin:0 0 24px;font-family:Literata,Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:${c.sage};">Chapters of a Life</p>
       ${body}
       <hr style="border:0;border-top:1px solid ${c.gold};width:56px;margin:28px 0 20px;text-align:left;">
       <p style="margin:0;font-size:13px;line-height:1.6;color:${c.stone};">${footer}</p>
@@ -51,10 +55,10 @@ function layout(title: string, body: string, footer: string) {
 }
 
 const h1 = (text: string) =>
-  `<h1 style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:normal;line-height:1.3;color:${c.ink};">${esc(text)}</h1>`;
+  `<h1 style="margin:0 0 16px;font-family:Literata,Georgia,'Times New Roman',serif;font-size:26px;font-weight:normal;line-height:1.3;color:${c.heading};">${esc(text)}</h1>`;
 const p = (html: string) => `<p style="margin:0 0 16px;">${html}</p>`;
 const quote = (text: string) =>
-  `<div style="margin:0 0 20px;padding:14px 18px;border-left:3px solid ${c.gold};background:#f7f1e8;font-family:Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;color:${c.ink};">${paragraphs(text)}</div>`;
+  `<div style="margin:0 0 20px;padding:14px 18px;border-left:3px solid ${c.accent};background:${c.panel};font-family:Literata,Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;color:${c.ink};">${paragraphs(text)}</div>`;
 
 const signOff = "Chapters of a Life · hello@chaptersofalife.co.uk";
 
@@ -95,7 +99,7 @@ export function invitationEmail(d: InviteDetails & { message: string | null }): 
         `You can share a favourite memory or story (a few short paragraphs, around 100&ndash;200 words, is perfect), up to two photographs, and a saying they loved. You don&rsquo;t need an account.${esc(by)}`,
       ),
       button(d.link, "Add my memories"),
-      p(`<span style="font-size:14px;color:${c.stone};">If the button doesn&rsquo;t work, copy this link into your browser:<br><a href="${esc(d.link)}" style="color:${c.sage};word-break:break-all;">${esc(d.link)}</a></span>`),
+      p(`<span style="font-size:14px;color:${c.stone};">If the button doesn&rsquo;t work, copy this link into your browser:<br><a href="${esc(d.link)}" style="color:${c.link};word-break:break-all;">${esc(d.link)}</a></span>`),
     ].join(""),
     `You&rsquo;re receiving this because ${esc(d.organiserName)} invited you. Replying to this email will reach them.<br>Don&rsquo;t want reminders about this book? <a href="${esc(d.stopLink)}" style="color:${c.stone};">Stop reminders</a>.<br>${esc(signOff)}`,
   );
@@ -130,7 +134,7 @@ export function reminderEmail(d: InviteDetails & { daysLeft: number }): Email {
       ),
       p("If you&rsquo;d like to be part of it, there&rsquo;s still time. Even a few lines or a single photograph would mean a great deal."),
       button(d.link, "Add my memories"),
-      p(`<span style="font-size:14px;color:${c.stone};">If the button doesn&rsquo;t work, copy this link into your browser:<br><a href="${esc(d.link)}" style="color:${c.sage};word-break:break-all;">${esc(d.link)}</a></span>`),
+      p(`<span style="font-size:14px;color:${c.stone};">If the button doesn&rsquo;t work, copy this link into your browser:<br><a href="${esc(d.link)}" style="color:${c.link};word-break:break-all;">${esc(d.link)}</a></span>`),
     ].join(""),
     `You&rsquo;re receiving this because ${esc(d.organiserName)} invited you. <a href="${esc(d.stopLink)}" style="color:${c.stone};">Stop reminders about this book</a>.<br>${esc(signOff)}`,
   );
@@ -253,6 +257,8 @@ type OrderEmailDetails = {
   pages: number;
   /** e.g. "£7.99" */
   delivery: string;
+  /** The book style's name, e.g. "Evergreen" */
+  styleName?: string;
   amount: string;
   address: string[];
   paidOn: string;
@@ -265,6 +271,7 @@ function orderTable(d: OrderEmailDetails) {
     row("Order", esc(d.orderRef)),
     row("Book", `Keepsake book for ${esc(d.bookName)}`),
     row("Pages", `${d.pages}, A4 hardback`),
+    ...(d.styleName ? [row("Style", esc(d.styleName))] : []),
     row("Copies", `${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`),
     row("Delivery", `UK tracked delivery, ${esc(d.delivery)}`),
     row("Paid", `${esc(d.amount)} in total, on ${esc(d.paidOn)}`),
@@ -277,6 +284,7 @@ function orderText(d: OrderEmailDetails) {
     `Order: ${d.orderRef}`,
     `Book: Keepsake book for ${d.bookName}`,
     `Pages: ${d.pages}, A4 hardback`,
+    ...(d.styleName ? [`Style: ${d.styleName}`] : []),
     `Copies: ${d.totalCopies}${d.extraCopies > 0 ? ` (1 + ${d.extraCopies} extra)` : ""}`,
     `Delivery: UK tracked delivery, ${d.delivery}`,
     `Paid: ${d.amount} in total, on ${d.paidOn}`,
@@ -298,7 +306,7 @@ export function orderConfirmationEmail(
         `Thank you for trusting us with ${esc(d.bookName)}&rsquo;s book. We&rsquo;ve received your payment, and we&rsquo;ll now begin designing the pages with care.`,
       ),
       orderTable(d),
-      `<h2 style="margin:24px 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:normal;color:${c.ink};">What happens next</h2>`,
+      `<h2 style="margin:24px 0 8px;font-family:Literata,Georgia,'Times New Roman',serif;font-size:20px;font-weight:normal;color:${c.heading};">What happens next</h2>`,
       `<ol style="margin:0 0 16px;padding-left:20px;">
         <li style="margin-bottom:6px;">We design your book using the memories and photographs you approved.</li>
         <li style="margin-bottom:6px;">Within ${d.previewDays} working days, we&rsquo;ll send you a preview to look through.</li>
@@ -339,7 +347,7 @@ export function newOrderAdminEmail(
     [
       h1("New order"),
       d.testMode ? p(`<strong>Test mode:</strong> no real money was taken.`) : "",
-      p(`From ${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.sage};">${esc(d.organiserEmail)}</a>).`),
+      p(`From ${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.link};">${esc(d.organiserEmail)}</a>).`),
       orderTable(d),
       button(d.adminUrl, "Open in admin"),
     ].join(""),
@@ -422,7 +430,7 @@ export function previewResponseAdminEmail(d: {
     [
       h1(d.approved ? "Preview approved" : "Changes requested"),
       p(
-        `${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.sage};">${esc(d.organiserEmail)}</a>) has ${
+        `${esc(d.organiserName)} (<a href="mailto:${esc(d.organiserEmail)}" style="color:${c.link};">${esc(d.organiserEmail)}</a>) has ${
           d.approved ? "approved" : "asked for changes to"
         } preview version ${d.version} of <strong>${esc(d.bookName)}</strong> (${esc(d.orderRef)}).`,
       ),

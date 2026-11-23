@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { adminDownloadUrl, adminSendTestEmails, getLayoutPackage } from "@/app/admin/actions";
 import LayoutDownload from "@/components/admin/LayoutDownload";
+import BookCover from "@/components/books/BookCover";
+import { bookStyle } from "@/lib/book-styles";
 import { TestEmailsButton } from "@/components/admin/ReminderControls";
 import PhotoGallery, { type GalleryPhoto } from "@/components/books/PhotoGallery";
 import { requireAdmin } from "@/lib/admin";
@@ -56,7 +58,7 @@ async function AdminBook({ id }: { id: string }) {
     admin
       .from("books")
       .select(
-        "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, created_at, cover_display_path, cover_width, cover_height, closes_on, closed_at",
+        "id, full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, created_at, cover_display_path, cover_width, cover_height, closes_on, closed_at, book_style",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -141,6 +143,19 @@ async function AdminBook({ id }: { id: string }) {
                   <a href={`mailto:${info.organiser_email}`}>{info.organiser_email}</a>
                 </>
               )}
+            </dd>
+          </div>
+          <div>
+            <dt>Book style</dt>
+            <dd className={styles.styleFact}>
+              <BookCover styleId={book.book_style} title={book.full_name} />
+              <span>
+                {bookStyle(book.book_style).name}
+                <span className={styles.sub}>
+                  Cover {bookStyle(book.book_style).cover} · text {bookStyle(book.book_style).text} · accent{" "}
+                  {bookStyle(book.book_style).accent}
+                </span>
+              </span>
             </dd>
           </div>
           <div>
