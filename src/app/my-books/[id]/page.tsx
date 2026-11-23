@@ -19,6 +19,7 @@ import {
   removeCover,
   reopenBook,
   saveCover,
+  setBookStyle,
   setClosingDate,
 } from "@/app/my-books/actions";
 import {
@@ -32,6 +33,7 @@ import {
 } from "@/app/my-books/review-actions";
 import { removeInvitation, resendInvitation, sendInvitations } from "@/app/my-books/invitation-actions";
 import BookClosing from "@/components/books/BookClosing";
+import BookStylePicker from "@/components/books/BookStylePicker";
 import CoverPhoto from "@/components/books/CoverPhoto";
 import InvitationsPanel, { type InvitedPerson } from "@/components/books/InvitationsPanel";
 import DeleteBook from "@/components/books/DeleteBook";
@@ -85,6 +87,7 @@ type MemoryPhoto = {
 type BookWithExtras = Book & {
   invite_token: string;
   locked_at: string | null;
+  book_style: string;
   cover_display_path: string | null;
   cover_width: number | null;
   cover_height: number | null;
@@ -128,7 +131,7 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
   const [{ data: book }, { data: memories, error: memoriesError }, { data: photos }, { data: invitations }, { data: orders }] = await Promise.all([
     supabase
       .from("books")
-      .select(`${bookColumns}, invite_token, locked_at, cover_display_path, cover_width, cover_height`)
+      .select(`${bookColumns}, invite_token, locked_at, book_style, cover_display_path, cover_width, cover_height`)
       .eq("id", id)
       .maybeSingle<BookWithExtras>(),
     supabase
@@ -515,6 +518,19 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
         />
       </section>
 
+      {/* ---------- Book style ---------- */}
+      <section className={styles.section} aria-labelledby="style-heading">
+        <h2 id="style-heading">Book style</h2>
+        <p className="muted">Choose the colours for your printed book&rsquo;s cover.</p>
+        <BookStylePicker
+          current={book.book_style}
+          title={book.full_name}
+          subtitle={coverYears(book.date_of_birth, book.date_of_death)}
+          readOnly={locked}
+          save={setBookStyle.bind(null, book.id)}
+        />
+      </section>
+
       {/* ---------- Cover photo ---------- */}
       <section className={styles.section} aria-labelledby="cover-heading">
         <h2 id="cover-heading">Cover photo</h2>
@@ -570,6 +586,12 @@ async function BookDetails({ id, status, show }: { id: string; status: string; s
       </section>
     </article>
   );
+}
+
+/** "1938 – 2026", for the small cover previews */
+function coverYears(born: string | null, died: string | null) {
+  const years = [born?.slice(0, 4), died?.slice(0, 4)].filter(Boolean);
+  return years.join(" – ");
 }
 
 /** "17 Nov" (UK time) */

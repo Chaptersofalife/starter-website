@@ -15,14 +15,14 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
 }
 
 .knownAs {
   font-family: var(--font-heading);
   font-size: clamp(1.3rem, 3vw, 1.6rem);
   font-style: italic;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
 }
 
 .back {
@@ -50,14 +50,14 @@
   justify-content: flex-end;
   padding: 1rem 1.15rem;
   border: 1px solid var(--color-border);
-  border-top: 3px solid var(--color-sage);
+  border-top: 3px solid var(--color-primary);
   border-radius: var(--radius);
   background: var(--color-surface);
 }
 
 .totals dt {
   font-size: 0.95rem;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
 }
 
 .totals dd {
@@ -87,13 +87,13 @@
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
   background: var(--color-surface);
-  color: var(--color-ink);
+  color: var(--color-text);
   font: inherit;
   font-size: 1.0625rem;
 }
 
 .search input:focus-visible {
-  outline: 2px solid var(--color-sage);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
 
@@ -125,8 +125,8 @@
 .table thead th {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-stone);
-  background: var(--color-linen);
+  color: var(--color-text-muted);
+  background: var(--color-panel);
   white-space: nowrap;
 }
 
@@ -135,7 +135,7 @@
 }
 
 .table tbody tr:hover {
-  background: var(--color-gold-tint);
+  background: var(--color-accent-tint);
 }
 
 .num {
@@ -157,7 +157,7 @@
 .sub {
   display: block;
   font-size: 0.9rem;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 
@@ -180,7 +180,7 @@
   max-width: 18rem;
   aspect-ratio: 4 / 5;
   border-radius: var(--radius);
-  background: var(--color-linen);
+  background: var(--color-panel);
 }
 
 .cover {
@@ -193,7 +193,7 @@
   place-items: center;
   font-family: var(--font-heading);
   font-style: italic;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
 }
 
 .facts {
@@ -206,7 +206,7 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-stone);
+  color: var(--color-text-muted);
 }
 
 .facts dd {
@@ -219,9 +219,9 @@
   gap: 0.75rem;
   margin-top: 2.5rem;
   padding: clamp(1.25rem, 4vw, 1.75rem);
-  border: 1px solid var(--color-gold);
+  border: 1px solid var(--color-accent);
   border-radius: var(--radius);
-  background: var(--color-linen);
+  background: var(--color-panel);
 }
 
 .panel h2,
@@ -245,4 +245,11 @@
   padding: 0;
   display: grid;
   gap: 1.25rem;
+}
+
+.styleFact {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
 }

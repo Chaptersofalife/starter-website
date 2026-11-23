@@ -10,6 +10,7 @@ import { lockBookForPrint, newPreviewPath, previewExists, previewUploadPass, sig
 import { runReminders, sendTestEmails, type ReminderReport } from "@/lib/reminders";
 import { requestOrigin } from "@/lib/request-origin";
 import { contactEmail, siteUrl } from "@/lib/site";
+import { bookStyle } from "@/lib/book-styles";
 import { isBookId, lifeDates } from "@/lib/books";
 import { MAX_PREVIEW_BYTES, addressLines, adminStatusChoices, previewableStatuses } from "@/lib/orders";
 import { mimeToExtension, printWarning, type PhotoMime } from "@/lib/photos";
@@ -57,6 +58,8 @@ export type LayoutPackage = {
     dates: string;
     livedIn: string | null;
     introduction: string | null;
+    /** e.g. "Evergreen (cover #52796F, text #F8F6F1, accent #84A98C)" */
+    style: string;
   };
   cover: { zipPath: string; url: string } | null;
   memories: {
@@ -103,7 +106,7 @@ export async function getLayoutPackage(bookId: string): Promise<LayoutPackage | 
   const [{ data: book }, { data: memories }, { data: photos }] = await Promise.all([
     admin
       .from("books")
-      .select("full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, cover_original_path")
+      .select("full_name, known_as, date_of_birth, date_of_death, lived_in, introduction, cover_original_path, book_style")
       .eq("id", bookId)
       .maybeSingle(),
     admin
@@ -162,6 +165,10 @@ export async function getLayoutPackage(bookId: string): Promise<LayoutPackage | 
       dates: lifeDates(book),
       livedIn: book.lived_in,
       introduction: book.introduction,
+      style: (() => {
+        const s = bookStyle(book.book_style);
+        return `${s.name} (cover ${s.cover}, text ${s.text}, accent ${s.accent})`;
+      })(),
     },
     cover:
       book.cover_original_path && urls.get(book.cover_original_path)

@@ -22,6 +22,7 @@ import {
   removeFiles,
   signedDownloadUrl,
 } from "@/lib/photos-server";
+import { isBookStyleId } from "@/lib/book-styles";
 import { closingDateProblem } from "@/lib/closing";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -472,4 +473,24 @@ export async function reopenBook(bookId: string, closesOn: string): Promise<Clos
   const problem = closingDateProblem(closesOn);
   if (problem) return { ok: false, error: problem };
   return updateClosing(bookId, { closes_on: closesOn || null, closed_at: null });
+}
+
+// ---------------------------------------------------------------------------
+// Book style (cover colours)
+// ---------------------------------------------------------------------------
+
+/** Saves the book's style. Row Level Security refuses it once the book is locked. */
+export async function setBookStyle(bookId: string, styleId: string): Promise<{ ok: boolean; error?: string }> {
+  if (!isBookId(bookId) || !isBookStyleId(styleId)) return { ok: false, error: "Please choose one of the styles." };
+  const supabase = await signedInClient();
+  const { data, error } = await supabase.from("books").update({ book_style: styleId }).eq("id", bookId).select("id");
+  if (error) {
+    console.error("Saving book style failed:", error.code, error.message);
+    return { ok: false, error: "Sorry, that didn't save. Please try again." };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "The style can't be changed now the book is approved for printing." };
+  }
+  revalidatePath(`/my-books/${bookId}`);
+  return { ok: true };
 }

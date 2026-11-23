@@ -191,6 +191,7 @@ async function buildDocument(pkg: LayoutPackage): Promise<Blob> {
   if (pkg.book.knownAs) children.push(label("Known as", pkg.book.knownAs));
   if (pkg.book.dates) children.push(label("Dates", pkg.book.dates));
   if (pkg.book.livedIn) children.push(label("Lived in", pkg.book.livedIn));
+  children.push(label("Book style", pkg.book.style));
   children.push(label("Cover photo", pkg.cover ? pkg.cover.zipPath : "None"));
   children.push(
     label(

@@ -8,6 +8,7 @@ import OrderStatusSelect from "@/components/admin/OrderStatusSelect";
 import PreviewUpload from "@/components/admin/PreviewUpload";
 import { requireAdmin } from "@/lib/admin";
 import { orderReference } from "@/lib/order-payments";
+import { bookStyle } from "@/lib/book-styles";
 import { addressLines, formatPounds, paidStatuses, previewableStatuses, type OrderStatus } from "@/lib/orders";
 import { signedPreviewUrl } from "@/lib/previews";
 import { stripeTestMode } from "@/lib/stripe";
@@ -95,6 +96,13 @@ async function Orders({ showAll }: { showAll: boolean }) {
   );
   const previewsFor = (orderId: string) => previews.filter((p) => p.order_id === orderId);
 
+  // Each book's chosen style (cover colours), for printing.
+  const bookIds = [...new Set(orders.map((o) => o.book_id).filter((id): id is string => Boolean(id)))];
+  const { data: bookRows } = bookIds.length
+    ? await admin.from("books").select("id, book_style").in("id", bookIds)
+    : { data: [] as { id: string; book_style: string }[] };
+  const styleOf = (bookId: string | null) => (bookRows ?? []).find((b) => b.id === bookId)?.book_style ?? null;
+
   const paidTotal = orders.filter((o) => paidStatuses.includes(o.status) && o.status !== "refunded").reduce((n, o) => n + o.amount_pence, 0);
 
   return (
@@ -157,6 +165,9 @@ async function Orders({ showAll }: { showAll: boolean }) {
                     <span className="address-line">
                       {formatPounds(o.amount_pence)} paid, including {formatPounds(o.delivery_pence)} UK tracked delivery
                     </span>
+                    {styleOf(o.book_id) && (
+                      <span className="address-line">Style: {bookStyle(styleOf(o.book_id)).name}</span>
+                    )}
                   </dd>
                 </div>
                 <div>
